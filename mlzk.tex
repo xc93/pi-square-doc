@@ -1,0 +1,844 @@
+\documentclass{article}
+
+\usepackage{fullpage}
+
+\input{prelim}
+
+\title{Matching Logic Proofs Meet Succinct Cryptographic Proofs}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We first present the syntax and proof system of matching logic.
+Then, we introduce the research problem of producing embarrassingly parallel 
+cryptographic proofs for matching logic. 
+\end{abstract}
+
+\section{Matching Logic}
+
+We present matching logic syntax in \Cref{sec:ml_syntax}
+and its proof system in \Cref{sec:ml_proof_system}. 
+We introduce the matching logic proof checker in \Cref{sec:ml_proof_checker}. 
+
+\subsection{Matching Logic Syntax}
+\label{sec:ml_syntax}
+
+We fix countably infinite sets $\EV$ and $\SV$, where
+\begin{enumerate}
+\item $\EV$ is a set of \emph{element variables},
+      often denoted $x$, $y$, and $z$. 
+\item $\SV$ is a set of \emph{set variables},
+      often denoted $X$, $Y$, and $Z$.
+\end{enumerate}
+We assume that $\EV$ and $\SV$ are disjoint, i.e., $\EV \cap \SV = \emptyset$. 
+A \emph{variable}, often denoted $u$ and $v$,
+is either an element variable or a set variable.
+We write $u \equiv v$ iff $u$ and $v$ denote the same variable.
+We write $u \not\equiv v$ iff $u$ and $v$ denote two distinct variables. 
+
+\begin{definition}
+\label{def:ml_patterns}
+A \emph{signature} $\Sigma$ is a set whose elements are called 
+\emph{symbols}, often denoted $\sigma$. 
+The set of \emph{$\Sigma$-patterns},
+or simply \emph{patterns} when $\Sigma$ is understood,
+is inductively defined by the following grammar:
+\begin{align*}
+\varphi 
+&\Coloneqq x 
+  && \text{\Slash Element Variable} 
+\\&\ \ \ \mid X 
+  && \text{\Slash Set Variable}
+\\&\ \ \ \mid \sigma 
+  && \text{\Slash Symbol}
+\\&\ \ \ \mid \varphi_1 \, \varphi_2
+  && \text{\Slash Application}
+\\&\ \ \ \mid \varphi_1 \imp \varphi_2
+  && \text{\Slash Implication}
+\\&\ \ \ \mid \exists x \ld \varphi
+  && \text{\Slash Existential Quantification}
+\\&\ \ \ \mid \mu X \ld \varphi
+  && \text{\Slash Least Fixpoint}
+\end{align*}
+where $\mu X \ld \varphi$ requires that $\varphi$ is positive in $X$,
+which means that $X$ is not nested in an odd number 
+of times on the left-hand side of an implication. 
+\end{definition}
+
+The following are some well-formed least fixpoint patterns:
+\begin{enumerate}
+\item $\mu X \ld X$
+\item $\mu X \mu Y \ld X$
+\item $\mu X \ld (Y \imp \bot)$
+\item $\mu X \ld ((X \imp \bot) \imp \bot)$
+\item $\mu X \ld \exists y \ld ((X \imp y) \imp (y \imp X))$
+\item $\mu X \ld (\sigma \, (X \imp \bot)) \imp \bot$
+\end{enumerate}
+The following are some ill-formed least fixpoint patterns:
+\begin{enumerate}
+\item $\mu X \ld (X \imp \bot)$
+\item $\mu X \ld (X \imp X)$
+\item $\mu X \ld (\sigma \, X) \imp \bot$
+\end{enumerate}
+
+Application is left-associative;
+for example, $\varphi_1 \, \varphi_2 \, \varphi_3$ means
+$(\varphi_1 \, \varphi_2) \, \varphi_3$.
+Implication is right-associative;
+for example, $\varphi_1 \imp \varphi_2 \imp \varphi_3$ means
+$\varphi_1 \imp (\varphi_2 \imp \varphi_3)$. 
+Application has a higher precedence than implication;
+for example, $\varphi_1 \imp \varphi_2 \, \varphi_3$ means
+$\varphi_1 \imp (\varphi_2 \, \varphi_3)$. 
+The scope of $\exists x$ and $\mu X$ goes as far to right as possible,
+for example, $\exists x \ld \varphi_1 \imp \varphi_2$ means
+$\exists x \ld (\varphi_1 \imp \varphi_2)$,
+and not $(\exists x \ld \varphi_1) \imp \varphi_2$.
+
+\Cref{def:ml_patterns} includes 7 \emph{primitive constructs} of matching logic.
+Besides these primitive constructs, we also allow \emph{notations}
+(also called 
+abbreviations, short-hands, derived constructs, or syntactic sugar),
+which are constructs that can be defined using the primitive ones. 
+The following are some commonly used notations:
+\begin{align}
+\top 
+&\equiv \exists x \ld x
+&&\text{\Slash Logical True}
+\\
+\bot 
+&\equiv \mu X \ld X
+&&\text{\Slash Logical False}
+\\
+\neg \varphi 
+&\equiv \varphi \imp \bot
+&&\text{\Slash Negation}
+\\
+\varphi_1 \lor \varphi_2
+&\equiv (\neg \varphi_1) \imp \varphi_2
+&&\text{\Slash Disjunction}
+\\
+\varphi_1 \land \varphi_2
+&\equiv \neg(\neg \varphi_1 \lor \neg \varphi_2)
+&&\text{\Slash Conjunction}
+\\
+\varphi_1 \dimp \varphi_2
+&\equiv (\varphi_1 \imp \varphi_2) \land (\varphi_2 \imp \varphi_1)
+&&\text{\Slash ``If-and-Only-If''}
+\\
+\forall x \ld \varphi
+&\equiv \neg \exists x \ld \neg \varphi
+&&\text{\Slash Universal Quantification}
+\\
+\nu X \ld \varphi
+&\equiv \neg \mu X \ld \neg \varphi[\neg X / X]
+&&\text{\Slash Greatest Fixpoint}
+\end{align}
+where $\varphi[\neg X / X]$ is the pattern obtained by
+substituting $\neg X$ for $X$ in $\varphi$. 
+We formally define substitution in \Cref{def:substitutions}. 
+
+
+
+Among the primitive constructs, $\exists x$ and $\mu X$ are \emph{binders}. 
+We define the concepts that are important to binders:
+\emph{free variables}, \emph{$\alpha$-renaming}, and
+\emph{capture-avoiding substitution}.
+These definitions are standard
+but we still present all the technical details to make this article
+self-contained. 
+Readers who are already familiar with these concepts can skip
+the rest and jump to \Cref{sec:ml_proof_system}. 
+
+\begin{definition}
+Given a pattern $\varphi$,
+we inductively
+define its set of \emph{free variables}, denoted $\FV{\varphi}$, as follows:
+\begin{enumerate}
+\item $\FV{x} = \{x\}$
+\item $\FV{X} = \{X\}$
+\item $\FV{\sigma} = \emptyset$
+\item $\FV{\varphi_1 \, \varphi_2} = \FV{\varphi_1} \cup \FV{\varphi_2}$
+\item $\FV{\varphi_1 \imp \varphi_2} = \FV{\varphi_1} \cup \FV{\varphi_2}$
+\item $\FV{\exists x \ld \varphi} = \FV{\varphi} \setminus \{x\}$
+\item $\FV{\mu X \ld \varphi} = \FV{\varphi} \setminus \{X\}$
+\end{enumerate}
+We say that $\varphi$ is \emph{closed} if $\FV{\varphi} = \emptyset$. 
+\end{definition}
+
+We can categorize the occurrences of a variable in a pattern
+into \emph{free} and \emph{bound} occurrences,
+based on whether the occurrence is within the scope
+of a corresponding binder. 
+
+\begin{definition}
+For any $x$, $X$, and $\varphi$,
+\begin{enumerate}
+\item A \emph{free occurrence} of $x$ in $\varphi$ 
+      is an occurrence that is not within the scope of any $\exists x$ binder;
+\item A \emph{free occurrence} of $X$ in $\varphi$
+      is an occurrence that is not within the scope of any $\mu X$ binder;
+\item A \emph{bound occurrence} of $x$ is an occurrence
+      within the scope of an $\exists x$ binder;
+\item A \emph{bound occurrence} of $X$ is an occurrence
+      within the scope of a $\mu X$ binder.
+\end{enumerate}
+We say that a variable is \emph{bound} in a pattern if 
+all occurrences are bound. 
+We say that a variable is \emph{fresh} w.r.t. a pattern if
+there are no occurrences, free or bound, of the variable. 
+\end{definition}
+
+As an example, consider the pattern
+$x \land \exists x \exists y \ld x \land y$
+where $x \not\equiv y$. 
+This pattern 
+has two occurrences of $x$ and one occurrence of $y$.\footnote{Note that we do not count $\exists x$ and $\exists y$ as occurrences, although some works do count them and call them \emph{binding} occurrences. In this article, we only consider free and bound occurrences and regard
+$\exists x$ and $\mu X$ as syntactic constructs.}
+The left-most $x$ is a free occurrence.
+The right-most $x$ and the right-most $y$ are both bound occurrences. 
+
+We can rename a bound variable to a fresh variable. 
+Such operation is called \emph{$\alpha$-renaming}. 
+For example, the above example pattern 
+$x \land \exists x \exists y \ld x \land y$
+can be $\alpha$-renamed into
+$x \land \exists z \exists y \ld z \land y$, 
+where $z \not\equiv x$ and $z \not\equiv y$. 
+
+\begin{definition}
+Let $\varphi_1$ and $\varphi_2$ be patterns. 
+We say that $\varphi_1$ and $\varphi_2$
+are \emph{$\alpha$-equivalent}, written $\varphi_1 \equiv_\alpha \varphi_2$,
+iff $\varphi_1$ can be transformed into $\varphi_2$ after applying
+a finite number of $\alpha$-renamings. 
+\end{definition}
+
+It is straightforward to show that $\alpha$-equivalence
+is indeed an equivalence relation. 
+In fact, $\alpha$-equivalence is the reflexive, commutative, and transitive
+closure of $\alpha$-renaming. 
+
+Sometimes, it takes more than one $\alpha$-renaming to transform
+a pattern into an $\alpha$-equivalent one. 
+For example, $x \land \exists x \exists y \ld x \land y$
+and $x \land \exists y \exists x \ld y \land x$ are $\alpha$-equivalent,
+but it takes three $\alpha$-renamings to transform the former into the latter:
+\begin{align}
+x \land \exists x \exists y \ld x \land y
+\xto{$\alpha$-renaming}
+x \land \exists z \exists y \ld z \land y
+\xto{$\alpha$-renaming}
+x \land \exists z \exists x \ld z \land x
+\xto{$\alpha$-renaming}
+x \land \exists y \exists x \ld y \land x
+\end{align}
+In the above $z$ is fresh; that is, $z \not\equiv x$ and $z \not\equiv y$. 
+
+Note that a notation can be a binder. 
+For example, $\forall x$, which is a notation defined by
+$\forall x \ld \varphi \equiv \neg \exists x \ld \neg \varphi$,
+is a binder.
+Therefore, all occurrences of $x$ in $\forall x \ld \varphi$ are bound,
+and $\FV{\forall x \ld \varphi} = \FV{\varphi} \setminus \{x\}$. 
+
+Next, we define substitution. 
+Because we have binders, we need to be careful to avoid the
+infamous phenomenon of free variable capture,
+illustrated by the following example.
+Suppose $\varphi \equiv \exists x \ld x \imp y$
+where $x \not\equiv y$
+and we want to substitute $y$ for $x$ in $\varphi$.
+If we do it blindly by replacing every (free) occurrence of $y$ with $x$,
+we get
+$\exists x \ld x \imp x$. 
+This is unintended because $y$, which is previously not within the scope of $\exists x$, is now bound. 
+The correct way to do substitution 
+is to first $\alpha$-rename
+$\exists x \ld x \imp y$ into $\exists z \ld z \imp y$, for some fresh variable $z$. 
+Then, we apply the substitution and obtain the correct result
+$\exists z \ld z \imp x$. 
+Note that this time, $x$ is no longer bound, which is intended. 
+
+The operation described above is called \emph{capture-avoiding substitution}. 
+As we can see from the above example, capture-avoiding substitution needs
+$\alpha$-renaming to avoid free variable capture.
+In the literature, there are two standard
+approaches to define capture-avoiding substitution:
+\begin{enumerate}
+\item We can define capture-avoiding substitution as a partial function 
+      that is undefined in the case of free variable capture.
+      In this approach, $\alpha$-renaming happens explicitly to avoid free variable capture. 
+\item We can define capture-avoiding substitution as a total function
+      on $\alpha$-equivalence classes. In this approach, $\alpha$-renaming
+      happens implicitly to avoid free variable capture. 
+\end{enumerate}
+In this article, we take the second approach;
+that is, we always work with $\alpha$-equivalence classes 
+throughout the article. 
+
+
+\begin{definition}
+\label{def:substitutions}
+Let $\varphi$ and $\psi$ be patterns and $v$ and $u$ be variables.
+We define $\varphi[\psi/v]$ to be the result of substituting
+$\psi$ for $v$ in $\varphi$ as follows:
+\begin{enumerate}
+\item $v[\psi/v] = \psi$
+\item $u[\psi/v] = u$ if $u \not\equiv v$
+\item $\sigma[\psi/v] = \sigma$
+\item $(\varphi_1 \, \varphi_2)[\psi/v] 
+       = (\varphi_1[\psi/v]) \, (\varphi_2[\psi/v])$
+\item $(\varphi_1 \imp \varphi_2)[\psi/v]
+       =\varphi[\psi/v] \imp \varphi_2[\psi/v]$
+\item $(\exists x \ld \varphi)[\psi/x] = \exists x \ld \varphi$
+\item $(\exists x \ld \varphi)[\psi/v] = \exists y \ld \varphi[y/x][\psi/v]$,
+      if $v \not\equiv x$ and $y$ is fresh
+\item $(\mu X \ld \varphi)[\psi/X] = \mu X \ld \varphi$
+\item $(\mu X \ld \varphi)[\psi/v] = \mu Y \ld \varphi[Y/X][\psi/v]$,
+      if $v \not\equiv X$ and $Y$ is fresh
+\end{enumerate}
+\end{definition}
+
+Before we move on, we have a remark on the presentation of binders. 
+Binders and their binding behaviors are known to be a non-trivial matter
+in the study of formal logic and its syntax. 
+Our presentation in this article 
+is a classic textbook presentation 
+where variables are represented by their names. 
+A \emph{nameless} presentation such as De Bruijn index 
+(\url{https://en.wikipedia.org/wiki/De_Bruijn_index})
+is an encoding method that represents bound variables by numbers instead of their names. 
+These numbers, called De Bruijn indices, denote the number of (nest) binders
+on top of a bound variable. 
+De Bruijn index has the advantage that $\alpha$-equivalent terms
+have the same encoding
+so checking $\alpha$-equivalence is the same as checking syntactic equality. 
+Locally nameless approach
+(\url{https://chargueraud.org/research/2009/ln/main.pdf})
+uses De Bruijn indices only for bound variables
+and retains names for free variables for readability. 
+Nominal approach (\url{https://www.sciencedirect.com/science/article/pii/S089054010300138X})
+uses \emph{swapping} and \emph{freshness} as the primitives notions/operations
+regarding binders, instead of using 
+$\alpha$-equivalence and capture-avoiding substitution as the primitive. 
+The reason is that swapping and freshness have simpler definitions
+than $\alpha$-equivalence and (especially) capture-avoiding substitution.
+Higher-order abstract syntax (HOAS) studies data structures
+that explicit expose the relationship between variables and their corresponding binders. 
+There is extensive study on matching and unification algorithms
+modulo $\alpha$-equivalence in the literature on
+nominal and HOAS approaches. 
+
+We are open to all these approaches regarding binders. 
+
+\subsection{Matching Logic Proof System}
+\label{sec:ml_proof_system}
+
+We present the entire matching logic proof system in 
+\Cref{fig:ml-proof-system}.
+To understand the proof system, we first need the following definition.
+
+\begin{definition}
+Let $\hole$ be a distinguished element variable.
+An \emph{application context} is a pattern
+where $\hole$ has exactly one occurrence, which is under 
+a number of nested applications. 
+More formally, 
+\begin{enumerate}
+\item $\hole$ is an application context, called the \emph{identity context};
+\item if $C$ is an application context and $\varphi$ is a pattern
+      with no occurrences of $\hole$,
+      both $(C \, \varphi)$ and $(\varphi \, C)$ are application contexts. 
+\end{enumerate}
+For an application context $C$ and a pattern $\psi$,
+we write $C[\psi]$ to mean $C[\psi/\hole]$. 
+\end{definition}
+
+\begin{figure}[t]
+\centering
+{\renewcommand{\arraystretch}{2}
+\begin{tabular}{rcl}
+\toprule
+\pruleLuk
+&
+$((\varphi_1 \imp \varphi_2) \imp \varphi_3) 
+   \imp ((\varphi_3 \imp \varphi_1) \imp (\varphi_4 \imp \varphi_1))$
+& axiom schema
+\\
+\pruleMP
+&
+$\prftree{\varphi_1 \imp \varphi_2}{\varphi_1}{\varphi_2}$
+& rule of inference with 2 premises
+\\
+\pruleQ
+&
+$\varphi[y/x] \imp \exists x \ld \varphi$
+& axiom schema
+\\
+\pruleG
+&
+$\prftree[r]{\quad if $x \not\in \FV{\varphi_2}$}
+  {\varphi_1 \imp \varphi_2}
+  {(\exists x \ld \varphi_1) \imp \varphi_2}$
+& rule of inference with 1 premise
+\\
+\prulePOR
+&
+$\appC{\varphi_1 \lor \varphi_2} \imp \appC{\varphi_1} \lor \appC{\varphi_2}$
+& axiom schema
+\\
+\prulePEX
+&
+$\appC{\exists x \ld \varphi} \imp \exists x \ld \appC{\varphi}$
+\quad if $x \not\in \FV{\appC{\exists x \ld \varphi}}$
+& axiom schema
+\\
+\pruleFrame
+&
+$\prftree{\varphi_1 \imp \varphi_2}{\appC{\varphi_1} \imp \appC{\varphi_2}}$
+& rule of inference with 1 premise
+\\
+\pruleSubst
+&
+$\prftree{\varphi}{\varphi[\psi/X]}$
+& rule of inference with 1 premise
+\\
+\prulePFix
+&
+$\varphi[\mu X \ld \varphi / X] \imp \mu X \ld \varphi$
+& axiom schema
+\\
+\pruleKT
+&
+$\prftree{\varphi[\psi/X] \imp \psi}{(\mu X \ld \varphi) \imp \psi}$
+& rule of inference with 1 premise
+\\
+\pruleEX
+&
+$\exists x \ld x$
+& axiom schema
+\\
+\pruleSingleV
+&
+$\neg (\appCa{x \land \varphi} \land \appCb{x \land \neg\varphi})$
+& axiom schema
+\\\bottomrule
+\end{tabular}
+} % close \renewcommand{\arraystretch}{2}
+\caption{Matching Logic Proof System}
+\label{fig:ml-proof-system}
+\end{figure}
+
+An \emph{axiom schema} (or \emph{schema}) is 
+a pattern with the occurrence of \emph{metavariables}, such as $x$, $X$, $C$, and $\varphi$.
+For example, 
+\pruleLuk
+is a schema with four metavariables
+$\varphi_1$, $\varphi_2$, $\varphi_3$, and $\varphi_4$.
+\[
+\pruleLuk
+\quad
+((\varphi_1 \imp \varphi_2) \imp \varphi_3) 
+   \imp ((\varphi_3 \imp \varphi_1) \imp (\varphi_4 \imp \varphi_1))
+\]
+An \emph{instance} of a schema is the pattern obtained by
+instantiating all the metavariables in the said schema. 
+The following are all instances of \pruleLuk.
+\begin{align*}
+((\bot \imp \top) \imp \nlzero) 
+   \imp ((\nlzero \imp \bot) \imp ((\nlsucc \, \nlzero) \imp \bot))
+\\
+((\bot \imp \top) \imp (\nlzero \imp \bot)) 
+   \imp (((\nlzero \imp \bot) \imp \bot) \imp (\bot \imp \bot))
+\end{align*}
+where $\nlzero,\nlsucc \in \Sigma$ are two (concrete) symbols in the signature. 
+\pruleQ is a schema with metavariables $x$, $y$, and $\varphi$. 
+\[
+\pruleQ \quad \varphi[y/x] \imp \exists x \ld \varphi
+\]
+The following are all instances of \pruleQ.
+\begin{align*}
+(\cvy \land \cvy) \imp \exists \cvx \ld (\cvx \land \cvy)
+\\
+(\cvx \land \cvy) \imp \exists \cvx \ld (\cvx \land \cvy)
+\end{align*}
+where $\cvx$ and $\cvy$ are concrete (non-meta) element variables. 
+
+A \emph{rule of inference (schema)} is a pair of
+some \emph{premises} and one \emph{conclusion},
+all possibly sharing some metavariables.
+Rules of inference are written as shown below:
+\[
+\prftree{\varphi_1}{\cdots}{\varphi_n}{\psi}
+\]
+We write the premises above the line and the conclusion below the line. 
+An \emph{instance} of a rule of inference is obtained by
+instantiating all the metavariables in the rule of inference. 
+
+The matching logic proof system as shown in \Cref{fig:ml-proof-system}
+has 7 axiom schemas and 5 rules of inference. 
+We call axiom schemas and rules of inference \emph{proof rules}.
+Matching logic has 7 + 5 = 12 proof rules. 
+
+\begin{definition}
+A \emph{theory} is a pair $(\Sigma,\Gamma)$
+where $\Sigma$ is a signature and $\Gamma$ is a set of $\Sigma$-patterns, 
+called \emph{non-logical axioms}. 
+When $\Sigma$ can be understood from the context,
+we abbreviate $(\Sigma, \Gamma)$ as $\Gamma$. 
+\end{definition}
+
+\begin{definition}
+\label{def:Hilbert-proof}
+Let $\Gamma$ be a theory.
+A \emph{Hilbert $\Gamma$-proof (for $\varphi_n$)} is a finite sequence of patterns:
+\begin{equation}
+\pr{\varphi_1 , \varphi_2 , \dots , \varphi_n}
+\end{equation}
+where $n \ge 1$, and for every $1 \le i \le n$, one of the following holds:
+\begin{enumerate}
+\item $\varphi_i \in \Gamma$;
+\item $\varphi_i$ is an instance of one of the 7 axiom schemas;
+\item $\varphi_i$ can be derived using one of the 5 rules of inference
+      from previous derived patterns 
+      (i.e., those in $\{\varphi_1,\dots,\varphi_{i-1}\}$) as premises.  
+\end{enumerate}
+We write $\Gamma \vdash \varphi$, meaning that $\varphi$ is provable/derivable from $\Gamma$, 
+iff there exists a Hilbert $\Gamma$-proof for $\varphi$. 
+\end{definition}
+
+Note that a Hilbert $\Gamma$-proof for $\varphi$ can always be re-arranged
+such that it starts with the axioms in $\Gamma$, followed by logical axioms
+and conclusions of applying the rules of inference. 
+More formally, if $\varphi$ has a Hilbert $\Gamma$-proof, i.e., $\Gamma \vdash \varphi$, then there must exist
+a Hilbert $\Gamma$-proof
+\begin{equation}
+\pr{\underbrace{\varphi_1 , \varphi_2 , \dots, \varphi_k}_\text{axioms in $\Gamma$},
+\underbrace{\varphi_{k+1},\dots,\varphi_{l}}_\text{logical axioms},
+\underbrace{\varphi_{l+1}, \dots , \varphi_n}_\text{conclusions}}
+\end{equation}
+such that $\varphi_1,\dots,\varphi_k \in \Gamma$,
+$\varphi_{k+1},\dots,\varphi_l$ are logical axioms,
+$\varphi_{l+1},\dots,\varphi_n$ are conclusions of the rules of inferences,
+and $\varphi_n \equiv \varphi$. 
+In this proof, $\varphi_1,\dots,\varphi_k$ are from $\Gamma$ so they are public.
+The last pattern $\varphi_n$ is the theorem being proved so it is also public. 
+The intermediate patterns $\varphi_{k+1},\dots,\varphi_{n-1}$ 
+are private or hidden. 
+
+As a concluding remark, we mention that the precise presentation of
+the proof system can be (slightly) modified, without changing the provability relation $\Gamma \vdash \varphi$. 
+For example, 
+we can replace the \pruleLuk axiom schema
+\[
+\pruleLuk
+\quad
+((\varphi_1 \imp \varphi_2) \imp \varphi_3) 
+   \imp ((\varphi_3 \imp \varphi_1) \imp (\varphi_4 \imp \varphi_1))
+\]
+with a single axiom (i.e., not a schema):
+\[
+\prule{Łukasiewicz'}
+\quad
+((\cvX_1 \imp \cvX_2) \imp \cvX_3) 
+   \imp ((\cvX_3 \imp \cvX_1) \imp (\cvX_4 \imp \cvX_1))
+\]
+where $\cvX_1,\dots,\cvX_4$ are four (different) concrete set variables. 
+Any instance of \pruleLuk is derivable from \prule{Łukasiewicz'}
+and the \pruleSubst rule of inference. 
+As another example, we can replace
+\pruleFrame with two rules of inference
+\begin{align*}
+\pruleFrameL\quad
+  & \prftree{\varphi_1 \imp \varphi_2}
+            {(\varphi_1 \, \psi) \imp (\varphi_2 \, \psi)}
+\\
+\pruleFrameR\quad
+  & \prftree{\varphi_1 \imp \varphi_2}
+            {(\psi \, \varphi_1) \imp (\psi \, \varphi_2)}
+\end{align*}
+While now we have two rules instead of one, 
+we avoid the use of application contexts (i.e., $C[\dots]$),
+which will make proof checking easier. 
+However, we will get longer proofs, because every \pruleFrame step
+will need a number of \pruleFrameL/\pruleFrameL steps,
+depending on the number of symbols in $C$. 
+
+To conclude, there is some flexibility in the design of the matching logic proof system. 
+The main criteria here is the simplicity of the generation and verification
+of the succinct cryptographic proofs of matching logic proofs,
+as discussed in \Cref{sec:crypto_proofs}. 
+
+\subsection{Matching Logic Proof Checker}
+\label{sec:ml_proof_checker}
+
+Generally speaking, 
+a matching logic proof checker is a deterministic and terminating program
+\begin{equation}
+\cdpc(\Gamma, \varphi, \Pi) \in \{\cdsucc, \cdfail\}
+\end{equation}
+The three inputs are:
+\begin{enumerate}
+\item a theory $\Gamma$, which can be the axiomatization of a mathematical domain or the formal semantics of a programming or specification language; 
+\item a pattern/claim $\varphi$;
+\item a proof object $\Pi$, 
+      which encodes a Hilbert $\Gamma$-proof for $\varphi$.
+\end{enumerate}
+A matching logic proof checker should satisfy the following
+soundness and completeness property:\footnote{Do not confuse it 
+with the soundness and completeness of a formal logic, which, intuitively speaking, 
+is the equivalence between what is semantically true and what is provable. In this article, we do not care about semantics at all. The soundness and completeness property is a property about the proof checker.}
+\begin{equation}
+\label{eq:pc_sound_complete}
+\Gamma \vdash \varphi
+\quad\text{iff}\quad
+\text{there exists $\Pi$ such that $\cdpc(\Gamma, \varphi, \Pi) = \cdsucc$}
+\end{equation}
+
+To implement a matching logic proof checker,
+one needs to consider many factors. 
+For example, one should decide an encoding/decoding mechanism for 
+representing $\Gamma$, $\varphi$, and $\Pi$.
+Sometimes, the proof object $\Pi$ can include additional
+proof annotations to simplify the main proof checking algorithm. 
+One should also formalize the metalevel operations/definitions
+in the proof checking algorithms, including but not limited to
+free variables, capture-avoiding substitution, and application contexts.
+These metalevel operations/definitions are necessary to formulate the
+matching logic proof system in \Cref{sec:ml_proof_system}. 
+
+We have implemented a matching logic proof checker in Metamath
+(\url{http://metamath.org})
+in 200 lines of code.\footnote{See \url{https://github.com/runtimeverification/proof-generation/blob/main/theory/matching-logic-200-loc.mm}.}.  
+Modulo all the technical and implementation details, 
+the essence of the Metamath implementation is a reduction 
+from checking matching logic proofs into three basic operations
+over strings:
+\begin{enumerate}
+\item checking string equivalence;
+\item string substitution; 
+\item dictionary lookups.
+\end{enumerate}
+
+
+\section{Problem Statement}
+\label{sec:crypto_proofs}
+
+Mathematical proof objects can be very large.
+For example, the proof object for
+$\GammaIMP \vdash \varphisum$,
+where
+\begin{align}
+\GammaIMP &\quad=\quad 
+\text{formal semantics of IMP---a simple imperative language; 40 lines of \K}
+\\
+\varphisum &\quad=\quad 
+\text{a claim stating that the output of the following \cdsum program is 5050}
+\\
+\cdsum &\quad=\quad 
+\code{int n = 100, s = 0; while(-{}-n)\{s = s + n;\}; output(s);}
+\end{align}
+consumes 83.4 MB of storage.\footnote{See \url{https://github.com/runtimeverification/proof-generation/blob/main/examples/sum-imp-complete-proof.mm}.}
+Therefore, mathematical proof objects are not good candidates for
+serving as \emph{correctness certificates}.
+They are too large to exchange. 
+On the other hand, 
+it is unnecessary to use a complete mathematical proof object
+if all that we want to show is $\Gamma \vdash \varphi$.
+According to \Cref{eq:pc_sound_complete},
+we only need show the \emph{existence} of a mathematical proof object
+that will pass the proof checker. 
+
+The \emph{research problem} is to 
+design a succinct cryptographic proof system
+$(\ZKprover,\ZKverifier)$
+with a prover $\ZKprover$ and a verifier $\ZKverifier$.
+The prover $\ZKprover$ takes three inputs\footnote{The prover/verifier can take more inputs such as a common reference string.}, i.e., 
+\begin{equation}
+\ZKprover(\Gamma, \varphi, \Pi) = \pi
+\end{equation}
+and produces a succinct cryptographic proof $\pi$. 
+The verifier $\ZKverifier$ takes $\Gamma$, $\varphi$, and $\pi$,
+and decides whether it accepts or rejects the inputs, i.e.,
+\begin{equation}
+\ZKverifier(\Gamma, \varphi, \pi) \in \{\cdacc, \cdrej\}
+\end{equation}
+Such a cryptographic proof system should satisfy the following soundness and completeness property:
+\begin{enumerate}
+\item If $\cdpc(\Gamma,\varphi,\Pi) = \cdsucc$, we have $\ZKverifier(\Gamma,\varphi,\ZKprover(\Gamma, \varphi, \Pi)) = \cdacc$
+\item If $\cdpc(\Gamma,\varphi,\Pi) = \cdfail$, we have
+$\ZKverifier(\Gamma, \varphi, \ZKprover'(\Gamma, \varphi, \Pi)) = \cdrej$
+for any $\ZKprover'$. 
+\end{enumerate}
+The above properties can be relaxed to allow exceptions with small probability
+and/or require limited computation power for $\ZKprover'$. 
+
+\section{Our Approach}
+
+What distinguishes our task from developing a SNARK/STARK for a generic program
+is the following crucial fact:
+\emph{checking mathematical proof objects is an embarrassingly parallel problem.} 
+Consider an arbitrary Hilbert proof
+$\pr{\varphi_1,\varphi_2,\dots,\varphi_n}$. 
+By \Cref{def:Hilbert-proof}, for every $1 \le i \le n$,
+the pattern/claim $\varphi_i$
+is either an axiom or derivable using one of the 5 non-nullary proof rules. 
+If $\varphi_i$ is an axiom, checking it is \emph{local}.
+If $\varphi_i$ is derivable, checking it requires to look up at most 2 existing claims.\footnote{\pruleMP has two premises. The other rules of inferece have one premise each. Logical axiom schemas have no premises. } 
+
+We want to utilize the fact that
+checking mathematical proof objects is an embarrassingly parallel problem
+to optimize our succinct cryptographic proof system.
+For example, we develop a circuit for every case in \Cref{def:Hilbert-proof}.
+This results in 13 circuits; 12 of them are for the 12 
+(non-nullary and nullary) proof rules in \Cref{fig:ml-proof-system} 
+and the last one is for checking membership $\varphi \in \Gamma$,
+which is Case (1) in \Cref{def:Hilbert-proof}. 
+Once each proof step is checked, we add its hash to a Merkle tree. 
+If all the patterns/claims are added to the tree, 
+we conclude that the entire proof is correct.
+
+\subsection{Overview}
+
+Our approach consists of three phases. 
+In the first phase, we generate a basic certificate for each Hilbert-style proof step. 
+In the second phase, we ensure that the basic certificates
+generated in the first phase belong to the same Hilbert-style proof,
+by using Merkle trees. 
+In the third phase, we aggregate the basic certificates
+using SnarkPack, which is an efficient way to aggregate
+any SNARK certificates in logarithmic time.  
+
+Throughout this section, let us assume
+the matching logic theorem being proved is
+\begin{equation}
+\Gamma \vdash \varphi_n
+\end{equation}
+and a corresponding Hilbert-style proof is
+\begin{equation}
+\Pi = \pr{\varphi_1,\dots,\varphi_n}
+\end{equation}
+
+\subsection{Phase 1: Basic Certificates}
+
+We first introduce \emph{basic proof checking procedures} or simply
+\emph{basic procedures}.
+These procedures check the correctness of each individual
+Hilbert-style proof steps.
+
+We use $\en{\_}$ to denote an injective function,
+called an \emph{encoding function},
+from matching logic patterns and theories into data. 
+For example, 
+$\enGamma$ is an encoding of $\Gamma$ and $\envarphi$ is an encoding of $\varphi$. 
+This way, we have the flexibility to use any encoding mechanism
+(textbook encoding, de Bruijn encoding, locally nameless encoding, nominal encoding, \ldots)
+and any representation method (S-expression, Metamath/RPN, a binary representation, \ldots.)
+We use $\alpha$ to denote \emph{proof annotation}, which includes information
+that is needed and/or useful for checking basic proof steps,
+such as a substitution of meta-variables. 
+
+We formalize the basic proof checking procedures that check the correctness of one-step Hilbert-style proofs.
+We split the arguments into \emph{public arguments} (listed before ``$;$'')
+and \emph{private arguments} (listed after ``$;$''). 
+Note that proof annotations (denoted $\alpha$) are private because they
+only simplify the proof checking procedures.
+\begin{enumerate}
+\item $\bpassump(\enGamma , \envarphi ; \alpha) \in \{\cdsucc,\cdfail\}$
+\begin{enumerate}
+\item Returns $\cdsucc$ for some $\alpha$ iff $\varphi \in \Gamma$.
+\item Returns $\cdfail$ for any $\alpha$ iff otherwise. 
+\end{enumerate}
+\item $\bpax(\envarphi ; \alpha) \in \{\cdsucc,\cdfail\}$
+\begin{enumerate}
+\item Returns $\cdsucc$ for some $\alpha$ iff $\varphi$ is a logical axiom, defined in \Cref{fig:ml-proof-system}.
+\item Returns $\cdfail$ for any $\alpha$ iff otherwise. 
+\end{enumerate}
+\item $\bpmp(\enpsin{1}, \enpsin{2}, \envarphi ; \alpha) \in \{\cdsucc,\cdfail\}$
+\begin{enumerate}
+\item Returns $\cdsucc$ for some $\alpha$ iff
+      $\varphi$ can be proved from $\psi_1$ and $\psi_2$ using \pruleMP.\footnote{That is, $\psi_1$ is identical to $\psi_2 \imp \varphi$. One can deduce similar criteria for the other proof rules according to \Cref{fig:ml-proof-system}.}
+\item Returns $\cdfail$ for any $\alpha$ iff otherwise. 
+\end{enumerate}
+\item $\bpgen(\enpsi, \envarphi ; \alpha) \in \{\cdsucc,\cdfail\}$
+\begin{enumerate}
+\item Returns $\cdsucc$ for some $\alpha$ iff
+      $\varphi$ can be proved from $\psi$ using \pruleG. 
+\item Returns $\cdfail$ for any $\alpha$ iff otherwise.  
+\end{enumerate}
+\item $\bpframe(\enpsi, \envarphi ; \alpha) \in \{\cdsucc,\cdfail\}$
+\begin{enumerate}
+\item Returns $\cdsucc$ for some $\alpha$ iff
+      $\varphi$ can be proved from $\psi$ using \pruleFrame. 
+\item Returns $\cdfail$ for any $\alpha$ iff otherwise.  
+\end{enumerate}
+\item $\bpsubst(\enpsi, \envarphi ; \alpha) \in \{\cdsucc,\cdfail\}$
+\begin{enumerate}
+\item Returns $\cdsucc$ for some $\alpha$ iff
+      $\varphi$ can be proved from $\psi$ using \pruleSubst. 
+\item Returns $\cdfail$ for any $\alpha$ iff otherwise.  
+\end{enumerate}
+\item $\bpkt(\enpsi, \envarphi ; \alpha) \in \{\cdsucc,\cdfail\}$
+\begin{enumerate}
+\item Returns $\cdsucc$ for some $\alpha$ iff
+      $\varphi$ can be proved from $\psi$ using \pruleKT. 
+\item Returns $\cdfail$ for any $\alpha$ iff otherwise.  
+\end{enumerate}
+\end{enumerate}
+
+For simplicity, we can merge the above basic procedures into 
+a \emph{top procedure}:
+\begin{equation}
+\bptop(\enGamma, \enDelta, \envarphi ; \alpha) \in \{\cdsucc,\cdfail\}
+\end{equation}
+such that
+$\bptop(\enGamma, \enDelta, \envarphi ; \alpha)$ returns $\cdsucc$ iff
+one of the following conditions holds for some $\alpha'$:
+\begin{enumerate}
+\item $\bpassump(\enGamma, \envarphi ; \alpha') = \cdsucc$
+      and $\Delta = \emptyset$.
+\item $\bpax(\envarphi; \alpha') = \cdsucc$
+      and $\Delta = \emptyset$.
+\item $\bpmp(\enpsin{1}, \enpsin{2}, \envarphi ; \alpha') = \cdsucc$
+      and $\Delta = \{\psi_1,\psi_2\}$.
+\item $\bpgen(\enpsi, \envarphi ; \alpha') = \cdsucc$
+      and $\Delta = \{\psi\}$.
+\item $\bpframe(\enpsi, \envarphi ; \alpha') = \cdsucc$
+      and $\Delta = \{\psi\}$.
+\item $\bpsubst(\enpsi, \envarphi ; \alpha') = \cdsucc$
+      and $\Delta = \{\psi\}$.
+\item $\bpkt(\enpsi, \envarphi ; \alpha') = \cdsucc$
+      and $\Delta = \{\psi\}$.
+\item $\bpkt(\enpsi, \envarphi ; \alpha') = \cdsucc$
+      and $\Delta = \{\psi\}$.
+\end{enumerate}
+In other words, $\Delta$ is the set of premises used by a proof step. 
+
+The following theorem states that it is sound and complete
+to decompose any Hilbert-style proof into its basic proof steps. 
+
+\begin{theorem}
+Proof sequence $\pr{\varphi_1,\dots,\varphi_n}$ is a Hilbert $\Gamma$-proof
+for $\varphi_n$ iff 
+there exists $\Delta_i$ and $\alpha_i$ for $1 \le i \le n$ such that
+\begin{enumerate}
+\item $\bptop(\enGamma, \enDeltan{i}, \envarphin{i} ; \alpha_i) = \cdsucc$
+      for all $1 \le i \le n$;
+\item $\Delta_0 = \emptyset$, and 
+      $\Delta_i \subseteq \{\varphi_1,\dots,\varphi_{i-1}\}$ 
+      for all $2 \le i \le n$.
+\end{enumerate}
+\end{theorem}
+
+Let $(\PPbasic, \VVbasic)$
+
+\subsection{Phase 2: Information Sharing}
+
+\subsection{Phase 3: Certificate Aggregation}
+
+\end{document}

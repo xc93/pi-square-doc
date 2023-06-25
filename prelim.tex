@@ -1,0 +1,101 @@
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\usepackage{amsmath,amssymb,amsthm}
+  \allowdisplaybreaks % allow page breaks inside displayed equations
+\usepackage{booktabs}
+\usepackage{hyperref,cleveref}
+\usepackage{mathtools}
+\usepackage{prftree}
+\usepackage{stmaryrd}
+\usepackage{xspace}
+
+\theoremstyle{definition}
+  \newtheorem{definition}{Definition}
+\theoremstyle{theorem}
+  \newtheorem{theorem}{Theorem}
+
+\newcommand{\K}{\ensuremath{\mathbb{K}}\xspace}
+\newcommand{\imp}{\to} % implication (logic)
+\newcommand{\dimp}{\leftrightarrow} % iff (logic)
+\newcommand{\xto}[1]{\xrightarrow{\text{#1}}} % rightarrow with text above
+\newcommand{\prule}[1]{(\textsc{#1})\xspace} % proof rule names
+  \newcommand{\pruleLuk}{\prule{Łukasiewicz}}
+  \newcommand{\pruleMP}{\prule{Modus Ponens}}
+  \newcommand{\pruleQ}{\prule{Quantifier}}
+  \newcommand{\pruleG}{\prule{Generalization}}
+  \newcommand{\prulePOR}{\prule{Propagation$_{\lor}$}}
+  \newcommand{\prulePORL}{\prule{Propagation$_{\lor,\textnormal{left}}$}}
+  \newcommand{\prulePORR}{\prule{Propagation$_{\lor,\textnormal{right}}$}}
+  \newcommand{\prulePORN}{\prule{Propagation$_{\lor,\textnormal{nested}}$}}
+  \newcommand{\prulePEX}{\prule{Propagation$_{\exists}$}}
+  \newcommand{\prulePEXL}{\prule{Propagation$_{\exists,\textnormal{left}}$}}
+  \newcommand{\prulePEXR}{\prule{Propagation$_{\exists,\textnormal{right}}$}}
+  \newcommand{\prulePEXN}{\prule{Propagation$_{\exists,\textnormal{nested}}$}}
+  \newcommand{\pruleFrame}{\prule{Frame}}
+  \newcommand{\pruleFrameN}{\prule{Frame$_{\textnormal{nested}}$}}
+  \newcommand{\pruleFrameL}{\prule{Frame$_{\textnormal{left}}$}}
+  \newcommand{\pruleFrameR}{\prule{Frame$_{\textnormal{right}}$}}
+  \newcommand{\pruleSubst}{\prule{Substitution}}
+  \newcommand{\pruleKT}{\prule{Knaster Tarski}}
+  \newcommand{\prulePFix}{\prule{Pre-Fixpoint}}
+  \newcommand{\pruleEX}{\prule{Existence}}
+  \newcommand{\pruleSingleV}{\prule{Singleton Variable}}
+\newcommand{\EV}{EV} % element variable set
+\newcommand{\SV}{SV} % set variable set
+\newcommand{\ld}{\,.\,} % used in exists x . phi and similar situations
+\newcommand{\Slash}{/\!/\xspace} % //, used to begin a line comment
+\newcommand{\FV}[1]{FV(#1)} % free variables
+\newcommand{\mkappC}[2]{#1[#2]} % make an application context
+  \newcommand{\appC}[1]{\mkappC{C}{#1}}    % C[...]
+  \newcommand{\appCa}[1]{\mkappC{C_1}{#1}} % C1[...]
+  \newcommand{\appCb}[1]{\mkappC{C_2}{#1}} % C2[...]
+\newcommand{\hole}{\square} % the hole variable
+\newcommand{\pr}[1]{\left\langle #1 \right\rangle} % <...>
+\newcommand{\code}[1]{\textnormal{\texttt{#1}}} % code
+  \newcommand{\cdpc}{\code{pc}} % proof checker program
+  \newcommand{\cdsucc}{\code{success}} % success flag
+  \newcommand{\cdfail}{\code{failure}} % failure flag
+  \newcommand{\cdacc}{\code{accept}}   % accept flag
+  \newcommand{\cdrej}{\code{reject}}   % reject flag
+  \newcommand{\cdsum}{\code{sum.imp}\xspace} % sum program
+\newcommand{\mkth}[1]{\Gamma^{\mathsf{#1}}} % make a logical theory
+  \newcommand{\GammaIMP}{\mkth{IMP}}
+% useful formulas with sub/super-scripts
+  \newcommand{\varphisum}{\varphi_\cdsum} % \varphi_sum
+% mathcal
+  \newcommand{\PP}{\mathcal{P}}
+    \newcommand{\PPbasic}{\PP_\code{basic}}
+  \newcommand{\VV}{\mathcal{V}}
+    \newcommand{\VVbasic}{\VV_\code{basic}}
+% ZK
+  \newcommand{\ZKprover}{\PP}
+  \newcommand{\ZKverifier}{\VV}
+% nonlogical symbols
+\newcommand{\nl}[1]{\mathsf{#1}}
+  \newcommand{\nlzero}{\nl{zero}}
+  \newcommand{\nlsucc}{\nl{succ}}
+% concrete (non-meta) variables
+\newcommand{\cv}[1]{\mathsf{#1}}
+  \newcommand{\cvx}{\cv{x}}
+  \newcommand{\cvy}{\cv{y}}
+  \newcommand{\cvX}{\cv{X}}
+% basic proof checking procedures
+\newcommand{\bp}[1]{\code{basic\_prove}_\code{#1}}
+  \newcommand{\bpassump}{\bp{assump}}
+  \newcommand{\bpax}{\bp{ax}}
+  \newcommand{\bpmp}{\bp{mp}}
+  \newcommand{\bpgen}{\bp{gen}}
+  \newcommand{\bpframe}{\bp{frame}}
+  \newcommand{\bpsubst}{\bp{subst}}
+  \newcommand{\bpkt}{\bp{kt}}
+  \newcommand{\bptop}{\bp{top}}
+% encoding
+\newcommand{\en}[1]{\left\llbracket #1 \right\rrbracket}
+  \newcommand{\enGamma}{\en{\Gamma}}
+  \newcommand{\envarphi}{\en{\varphi}}
+  \newcommand{\envarphin}[1]{\en{\varphi_{#1}}}
+  \newcommand{\enpsi}{\en{\psi}}
+  \newcommand{\enpsin}[1]{\en{\psi_{#1}}}
+  \newcommand{\enDelta}{\en{\Delta}}
+  \newcommand{\enDeltan}[1]{\en{\Delta_{#1}}}
