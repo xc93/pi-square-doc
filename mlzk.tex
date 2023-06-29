@@ -18,6 +18,8 @@ Then, we introduce the research problem of producing embarrassingly parallel
 cryptographic proofs for matching logic. 
 \end{abstract}
 
+\tableofcontents
+
 \section{Matching Logic}
 
 We present matching logic syntax in \Cref{sec:ml_syntax}
@@ -658,11 +660,11 @@ The \emph{research problem} is to
 design a succinct cryptographic proof system
 $(\ZKprover,\ZKverifier)$
 with a prover $\ZKprover$ and a verifier $\ZKverifier$.
-The prover $\ZKprover$ takes three inputs\footnote{The prover/verifier can take more inputs such as a common reference string.}, i.e., 
+The prover $\ZKprover$ takes three inputs\footnote{The prover/verifier can take more inputs such as a common reference string.}
+and produces a succinct cryptographic proof $\pi$, i.e., 
 \begin{equation}
 \ZKprover(\Gamma, \varphi, \Pi) = \pi
 \end{equation}
-and produces a succinct cryptographic proof $\pi$. 
 The verifier $\ZKverifier$ takes $\Gamma$, $\varphi$, and $\pi$,
 and decides whether it accepts or rejects the inputs, i.e.,
 \begin{equation}
@@ -672,11 +674,9 @@ Such a cryptographic proof system should satisfy the following soundness and com
 \begin{enumerate}
 \item If $\cdpc(\Gamma,\varphi,\Pi) = \cdsucc$, we have $\ZKverifier(\Gamma,\varphi,\ZKprover(\Gamma, \varphi, \Pi)) = \cdacc$
 \item If $\cdpc(\Gamma,\varphi,\Pi) = \cdfail$, we have
-$\ZKverifier(\Gamma, \varphi, \ZKprover'(\Gamma, \varphi, \Pi)) = \cdrej$
-for any $\ZKprover'$. 
+$\Pr(\ZKverifier(\Gamma, \varphi, \ZKprover'(\Gamma, \varphi, \Pi)) = \cdrej) \ge 1-\epsilon$
+for any poly-time $\ZKprover'$. 
 \end{enumerate}
-The above properties can be relaxed to allow exceptions with small probability
-and/or require limited computation power for $\ZKprover'$. 
 
 \section{Our Approach}
 
@@ -687,11 +687,12 @@ Consider an arbitrary Hilbert proof
 $\pr{\varphi_1,\varphi_2,\dots,\varphi_n}$. 
 By \Cref{def:Hilbert-proof}, for every $1 \le i \le n$,
 the pattern/claim $\varphi_i$
-is either an axiom or derivable using one of the 5 non-nullary proof rules. 
-If $\varphi_i$ is an axiom, checking it is \emph{local}.
+is either an axiom or derivable using one of the 5 non-nullary rules of inference.
+Note that it is \emph{local} to check whether $\varphi_i$ is an axiom,
+in the sense that there are no premises. 
 If $\varphi_i$ is derivable, checking it requires to look up at most 2 existing claims.\footnote{\pruleMP has two premises. The other rules of inferece have one premise each. Logical axiom schemas have no premises. } 
 
-We want to utilize the fact that
+We utilize the fact that
 checking mathematical proof objects is an embarrassingly parallel problem
 to optimize our succinct cryptographic proof system.
 For example, we develop a circuit for every case in \Cref{def:Hilbert-proof}.
@@ -699,24 +700,17 @@ This results in 13 circuits; 12 of them are for the 12
 (non-nullary and nullary) proof rules in \Cref{fig:ml-proof-system} 
 and the last one is for checking membership $\varphi \in \Gamma$,
 which is Case (1) in \Cref{def:Hilbert-proof}. 
-Once each proof step is checked, we add its hash to a Merkle tree. 
-If all the patterns/claims are added to the tree, 
-we conclude that the entire proof is correct.
-
-\subsection{Overview}
-
-Our approach consists of three phases. 
-In the first phase, we generate a basic certificate for each Hilbert-style proof step. 
-In the second phase, we ensure that the basic certificates
-generated in the first phase belong to the same Hilbert-style proof,
-by using Merkle trees. 
-In the third phase, we aggregate the basic certificates
-using SnarkPack, which is an efficient way to aggregate
-any SNARK certificates in logarithmic time.  
+Each instance that runs a circuit will receive a cryptographic commitment 
+to the Hilbert proof to ensure that all the proof steps being checked
+can be aggregated together. 
+Finally, we use a cryptographic certificate aggregation method such as
+recursive SNARKs or SnarkPack 
+to aggregate all the one-step certificates into a final cryptographic certificate. 
 
 Throughout this section, let us assume
 the matching logic theorem being proved is
 \begin{equation}
+\label{eq:goal}
 \Gamma \vdash \varphi_n
 \end{equation}
 and a corresponding Hilbert-style proof is
@@ -724,25 +718,395 @@ and a corresponding Hilbert-style proof is
 \Pi = \pr{\varphi_1,\dots,\varphi_n}
 \end{equation}
 
-\subsection{Phase 1: Basic Certificates}
+\subsection{Preliminaries}
 
-We first introduce \emph{basic proof checking procedures} or simply
-\emph{basic procedures}.
-These procedures check the correctness of each individual
-Hilbert-style proof steps.
+We first introduce the preliminaries on the encoding function for matching logic,
+commitment schemas, and cryptographic certificates aggregation. 
 
-We use $\en{\_}$ to denote an injective function,
-called an \emph{encoding function},
-from matching logic patterns and theories into data. 
-For example, 
-$\enGamma$ is an encoding of $\Gamma$ and $\envarphi$ is an encoding of $\varphi$. 
-This way, we have the flexibility to use any encoding mechanism
-(textbook encoding, de Bruijn encoding, locally nameless encoding, nominal encoding, \ldots)
-and any representation method (S-expression, Metamath/RPN, a binary representation, \ldots.)
-We use $\alpha$ to denote \emph{proof annotation}, which includes information
-that is needed and/or useful for checking basic proof steps,
-such as a substitution of meta-variables. 
+\subsubsection{Encoding function}
 
+An \emph{encoding function} $\en{\_}$ 
+is a mapping from matching logic patterns and theories into data. 
+In this paper, we do not specify a particular encoding function
+to enjoy the flexibility to work with
+any encoding mechanism
+(textbook encoding, de Bruijn encoding (\url{https://en.wikipedia.org/wiki/De_Bruijn_index}), 
+locally nameless encoding (\url{https://chargueraud.org/research/2009/ln/main.pdf}), 
+nominal encoding (\url{https://www.cl.cam.ac.uk/~amp12/papers/nomlfo/nomlfo-draft.pdf}), \ldots)
+and representation method 
+(S-expression (\url{https://en.wikipedia.org/wiki/S-expression}), 
+ Metamath (\url{metamath.org }), a binary representation, \ldots)
+We use $\Data$ to denote the data space associated with the encoding function
+$\en{\_}$. 
+For $d \in \Data$,
+we say that $d$ is a \emph{valid pattern encoding} 
+(resp. \emph{valid theory encoding}) iff
+there exists $\varphi$ (resp. $\Gamma$)
+such that $d = \en{\varphi}$ (resp. $d = \en{\Gamma}$). 
+We say that $d$ is a \emph{valid encoding} if it is 
+a valid pattern encoding or a valid theory encoding. 
+For technical simplicity, we require that patterns and theories 
+do not share a common encoding; that is,
+$\en{\varphi} \neq \en{\Gamma}$ for any $\varphi$ and $\Gamma$. 
+
+
+A \emph{collision} is when there exist two different $\varphi_1$ and $\varphi_2$ such that $\en{\varphi_1} = \en{\varphi_2}$
+(resp., two different $\Gamma_1$ and $\Gamma_2$ such that $\en{\Gamma_1} = \en{\Gamma_2}$). 
+An \emph{injective} encoding, such as textbook encoding or nominal encoding,
+guarantees that there is no collision;
+that is, $\en{\varphi_1} = \en{\varphi_2}$ implies $\varphi_1 \equiv \varphi_2$
+(and the same for theories). 
+De Bruijn encoding and locally nameless encoding are \emph{injective-modulo} encoding, in the sense that
+$\en{\varphi_1} = \en{\varphi_2}$ implies $\varphi_1$ is $\alpha$-equivalent to
+$\varphi_2$. 
+In other words, they are injective modulo $\alpha$-equivalence. 
+Since our goal is to determine whether a given pattern is provable or not, 
+we can use any encoding function that is injective modulo an equivalence relation $E$
+that is finer than logical equivalence;
+that is, $\en{\varphi_1} = \en{\varphi_2}$ implies $\varphi_1 \mathbin{E} \varphi_2$, which implies $\emptyset \vdash \varphi_1 \dimp \varphi_2$. 
+For textbook encoding or nominal encoding, $E$ is syntactic identity. 
+For de Bruijn encoding and locally nameless encoding, $E$ is $\alpha$-equivalence. 
+Given an encoding function and a valid pattern encoding
+(resp. valid theory encoding) $d$,
+we write $\varphi_d$ (resp. $\Gamma_d$) to denote a pattern (resp. theory)
+such that $\en{\varphi_d} = d$ (resp. $\en{\Gamma_d} = d$). 
+
+We are open to and interested in designing
+new encoding functions that are cryptography friendly.  
+For example, an encoding function whose data space $\Data$
+is a polynomial vector space may allow
+us to directly implement
+operations over patterns and theories
+using the primitive operations over the polynomial vector space,
+without going through an extra layer of abstraction/interpretation 
+of a certain ZK language or framework. 
+
+\subsubsection{Non-Interactive Commitment Schemes}
+
+The following definition is from \url{https://shorturl.at/jmozS}.
+
+\begin{definition}
+A \emph{commitment scheme} is a tuple of procedures
+$(\CSSetup, \CSCommit, \CSVerCommit)$, where
+\begin{enumerate}
+\item $\CSSetup(1^\lambda) \to \ck$ 
+      takes a security parameter $\lambda \in \NNN$
+      and outputs a commitment key $\ck$. This key includes descriptions of
+      the input space
+      $\Ispace$,  commitment space $\Cspace$, and opening space $\Ospace$. 
+\item $\CSCommit(\ck, u) \to  (c, o)$ takes $\ck$ and a value $u \in \Ispace$
+      and outputs a commitment $c$ and an opening $o$.
+\item $\CSVerCommit(\ck, c, u, o) \to b$ takes $\ck$ as well as
+      a commitment $c$, a value $u$, and an opening $o$,
+      and accepts ($b = \cdacc$) or rejects ($b = \cdrej$).  
+\end{enumerate}
+A commitment scheme should satisfy the following properties:
+\begin{enumerate}
+\item (Correctness).
+      For every $\lambda \in \NNN$ and $u \in \Ispace$, we have
+      $\Pr[\CSVerCommit(\ck, c, u, o) = \cdacc \mid \ck = \CSSetup(1^\lambda), (c,o) = \CSCommit(\ck, u)] = 1$. 
+\item (Binding).
+      For every poly-time adversary $\Adversary$, we have
+      \begin{align*}
+           \Pr[\CSVerCommit(\ck, c, u, o) = \cdacc \,\land\,
+           \CSVerCommit(\ck, c, u', o') = \cdacc \,\land\, u' \neq u
+           \\ \mid
+           \ck = \CSSetup(1^\lambda), (c,u,o,u',o') = \Adversary(\ck)] < \epsilon
+      \end{align*}
+\item (Hiding). For $\ck = \CSSetup(1^\lambda)$ and $u,u' \in \Ispace$,
+      the following two probabilistic distributions are statistically close:
+      $\CSCommit(\ck, u) \approx \CSCommit(\ck, u')$. 
+\end{enumerate}
+\end{definition}
+
+Intuitively, a commitment scheme allows us to lock a value $u$
+within a safe box (commitment $c$),
+which can only be opened using the corresponding key (opening $o$). 
+Given a theory $\Gamma$, we can compute its commitment $\cGamma$
+with an opening $\oGamma$ and pass them to the proof nodes
+(explained in \Cref{sec:proof_network_arc}).
+This way, we ensure that all the proof nodes have access to the same
+theory $\Gamma$. 
+
+We also need a commitment scheme for the $\Gamma$-proof $\pr{\varphi_1,\dots,\varphi_n}$,
+which allows to be opened only w.r.t. a specific position. 
+This is known as \emph{vector commitments}. 
+The following definition is from \url{https://shorturl.at/wzE79}, 
+adapted and simplified 
+to fit our setting and notation. 
+\begin{definition}
+A \emph{vector commitment scheme} is a tuple of procedures
+$(\VCSetup, \VCCommit, \VCVerCommit)$, where
+\begin{enumerate}
+\item $\VCSetup(1^\lambda, n) \to \ck$ 
+      takes a security parameter $\lambda \in \NNN$
+      and a size $n \in \NNN$, 
+      and outputs a commitment key $\ck$. This key includes descriptions of
+      the input space
+      $\Ispace$,  commitment space $\Cspace$, and opening space $\Ospace$. 
+\item $\VCCommit(\ck, \vecu) \to  (c, o)$ takes $\ck$ and 
+      an $n$-length vector $\vecu = \pr{u_1,\dots,u_n}$ with $u_1,\dots,u_n \in \Ispace$,
+      and outputs a commitment $c$ and an opening $o$.
+\item $\VCVerCommit(\ck, c, u, i, o) \to b$ takes $\ck$ as well as
+      a commitment $c$, a value $u$, a position $i$, and an opening $o$,
+      and accepts ($b = \cdacc$) or rejects ($b = \cdrej$).  
+\end{enumerate}
+A vector commitment should satisfy the following properties
+(where $\vecu = \pr{u_1,\dots,u_n}$):
+\begin{enumerate}
+\item (Correctness).
+      For every $\lambda \in \NNN$ and $\vecu$, we have
+      $\Pr[\CSVerCommit(\ck, c, u_i, i, o) = \cdacc \mid \ck = \CSSetup(1^\lambda, n), (c,o) = \CSCommit(\ck, \vecu)] = 1$. 
+\item (Binding).
+      For every poly-time adversary $\Adversary$, we have
+      \begin{align*}
+           \Pr[\CSVerCommit(\ck, c, u_i, i, o) = \cdacc \,\land\,
+           \CSVerCommit(\ck, c, u', i, o') = \cdacc \,\land\, u' \neq u
+           \\ \mid
+           \ck = \CSSetup(1^\lambda, n), (c,\vecu,i, o,u',o') = \Adversary(\ck)] < \epsilon
+      \end{align*}
+\item (Hiding). For $\ck = \CSSetup(1^\lambda, n)$ and $\vecu,\vecu' \in \Ispace$,
+      the following two probabilistic distributions are statistically close:
+      $\CSCommit(\ck, \vecu) \approx \CSCommit(\ck, \vecu')$. 
+\end{enumerate}
+\end{definition}
+
+Given a Hilbert $\Gamma$-proof $\Pi = \pr{\varphi_1,\dots,\varphi_n}$, we can compute its vector commitment $\cPi$ with an opening $\oPi$ and pass them to the proof nodes. This way, we ensure that all the proof nodes have access to the same Hilbert $\Gamma$-proof, without needing to send the entire Hilbert $\Gamma$-proof to each proof node. 
+
+\subsection{Proof Network Architecture}
+\label{sec:proof_network_arc}
+
+We introduce a \emph{proof network} for checking
+the correctness of any given Hilbert $\Gamma$-proof
+$\pr{\varphi_1,\dots,\varphi_n}$ in parallel. 
+The proof network $\PNet$ consists of $n+2$ nodes, as follows:
+\begin{enumerate}
+\item An \emph{initial node} $\Ninit$ that stores
+      $\Gamma$ and $\varphi_1,\dots,\varphi_n$, as well as
+      a proof annotation $\alpha$. 
+      The proof annotation includes additional information that simplifies
+      the proof checking procedures. 
+      The initial node is in charge of dispatching the entire proof checking task into $n$ sub-tasks, which will be carried out by $n$ proof nodes in parallel. 
+\item \emph{Proof nodes} $\Nprn{1},\dots,\Nprn{n}$, which are called by the initial node. 
+      Each proof node checks only one step of the Hilbert proof
+      and produces a cryptographic certificate.
+      All the cryptographic certificates will then be       passed to the aggregation node. 
+\item An \emph{aggregation node} $\Naggr$ that aggregates the cryptographic
+      certificates produced by the proof nodes into the final cryptographic certificate. 
+\end{enumerate}
+
+\subsubsection{Initial Node}
+\label{sec:initial_node}
+
+The initial node $\Ninit$ runs \Cref{alg:initial_node}.
+In the algorithm, we only send the commitments of $\Gamma$ and/or $\Pi$,
+the index of the pattern being proved,
+and a type code that indicates how it is proved,
+to the proof nodes via a trusted channel. 
+All the other information such as the pattern itself and proof annotations can be sent via an untrusted channel to reduce cost. 
+
+\begin{algorithm}[tp]
+ \KwData{A theory $\Gamma$, a Hilbert $\Gamma$-proof       
+         $\Pi = \pr{\varphi_1,\dots,\varphi_n}$ of length $n$,
+         and a proof annotation $\alpha$}
+ \KwParam{Two security parameters $\lambda_\Gamma,\lambda_\Pi \in \NNN$}
+ \KwDescr{Dispatch the proof checking task into sub-tasks and send them
+           to $n$ proof nodes.}
+ \tcp{set up and commit $\Gamma$}
+ $\ckGamma \gets \CSSetup(1^{\lambda_\Gamma})$ and
+ $(\cGamma,\oGamma) \gets \CSCommit(\ckGamma, \enGamma)$\;
+ \tcp{set up and commit $\Pi = \pr{\varphi_1,\dots,\varphi_n}$}
+ $\ckPi \gets \CSSetup(1^{\lambda_\Pi})$ and
+ $(\cPi,\oPi) \gets \CSCommit(\ckPi, \pr{\envarphin{1},\dots,\envarphin{n}})$\;
+ \tcp{dispatch the task; note that this can also be done in parallel}
+ \For{$i = 1$ \KwTo $n$}{
+  \tcp{prepare the data to be sent to $\Nprn{i}$}
+  prepare the proof annotation $\alpha_i$ for $\varphi_i$,
+  which, usually, can simply be extracted from $\alpha$\;
+  \Switch{how $\varphi_i$ is derived in $\Pi$}{
+  \uCase{$\varphi$ is an assumption, i.e., $\varphi_i \in \Gamma$}{
+    send $\pr{\cdassump, \ckGamma, \ckPi, \cGamma, \oGamma, \cPi, \oPi, i}$ to $\Nprn{i}$ 
+    via a trusted channel\;
+    send $\pr{\enGamma, \envarphin{i}, \alpha_i}$ to $\Nprn{i}$ 
+    via an untrusted channel\;
+  }
+  \uCase{$\varphi$ is an instance of one of 7 logical axiom schemas}{
+    send $\pr{\cdax, \ckPi, \cPi, \oPi, i}$ to $\Nprn{i}$ 
+    via a trusted channel\;
+    send $\pr{\envarphin{i}, \alpha_i}$ to $\Nprn{i}$ 
+    via an untrusted channel\;
+  }
+  \uCase{$\varphi$ is derived by $\pruleMP$}{
+    $j_1 \gets \text{index of the first premise of $\varphi_i$ in $\Pi$}$\;
+    $j_2 \gets \text{index of the second premise of $\varphi_i$ in $\Pi$}$\;
+    send $\pr{\cdmp, \ckPi, \cPi, \oPi, j_1, j_2, i}$ to $\Nprn{i}$ 
+    via a trusted channel\;
+    send $\pr{\envarphin{j_1}, \envarphin{j_2}, \envarphin{i}, \alpha_i}$ to $\Nprn{i}$ 
+    via an untrusted channel\;
+  }
+  \uCase{$\varphi$ is derived by any other rule of inference 
+         (which has one premise)}{
+    $j \gets \text{index of the premise of $\varphi_i$ in $\Pi$}$\;
+    send $\pr{\kappa, \ckPi, \cPi, \oPi, j, i}$ to $\Nprn{i}$ 
+    via a trusted channel, where $\kappa$ indicates the rule of inference\;
+    send $\pr{\envarphin{j}, \envarphin{i}, \alpha_i}$ to $\Nprn{i}$ 
+    via an untrusted channel\;
+  }} % end of switch
+ } % end of for
+\caption{Initial Node}
+\label{alg:initial_node}
+\end{algorithm}
+
+\subsubsection{Proof Nodes}
+
+Each proof node is equipped with a \emph{basic procedure},
+denoted $\bptop$, which checks the correctness of one Hilbert proof step. 
+A proof node calls \emph{basic procedure} for proof checking
+and verifies the integrity of the data received from the untrusted channel
+using the commitments received from the trusted channel. 
+The algorithm that runs on a proof node is listed in \Cref{alg:proof_node},
+which calls sub-algorithms listed in
+\Cref{alg:proof_node_assump,alg:proof_node_ax,alg:proof_node_mp,alg:proof_node_other}. 
+
+\begin{algorithm}[tp]
+ \KwDescr{Receive a task from the Initial Node $\Ninit$, 
+          perform proof checking,
+          verify integrity, and send the certificate to the Aggregation Node.}
+ \tcp{receive a task}
+ receive $data = \pr{id, \dots}$ from $\Ninit$ via the trusted channel\;
+ \Switch{id}{
+  \uCase{$id = \cdassump$}{
+    execute $\code{proof\_node\_assump}$ in \Cref{alg:proof_node_assump}\;
+  }
+  \uCase{$id = \cdax$}{
+    execute $\code{proof\_node\_ax}$ in \Cref{alg:proof_node_ax}\;
+  }
+  \uCase{$id = \cdmp$}{
+    execute $\code{proof\_node\_mp}$ in \Cref{alg:proof_node_mp}\;
+  }
+  \Other{
+    \tcp{set $\kappa$ to be the rule of inference}
+    $\kappa \gets id$\;
+    execute $\code{proof\_node\_other}$ in \Cref{alg:proof_node_other}\;
+  }
+ }% end of switch
+\caption{Proof Node: Main Entry Point}
+\label{alg:proof_node}
+\end{algorithm}
+
+\begin{algorithm}
+\KwDescr{Called when a proof node receives $\cdassump$ data
+         in \Cref{alg:proof_node}}
+    receive $\pr{\cdassump, \ckGamma, \ckPi, \cGamma, \oGamma, \cPi, \oPi, i} \gets$
+    the trusted channel\;
+    \tcp{receive data from the untrusted channel}
+    \tcp{the primes indicate that the data may be altered and is not trustworthy}
+    receive $\pr{\enGamma', \envarphin{i}', \alpha_i'} \gets$ 
+    the untrusted channel\;
+    \If{$\bptop(\cdassump, \enGamma', \envarphin{i}', \alpha_i') = \cdrej$}{
+      \tcp{proof check fails at $i$-th step; no certificate will be produced}
+      error handling\;
+      \Return{\cdrej}
+    } % end if
+    \tcp{proof check succeeds; need to check integrity}
+    \If{$\CSVerCommit(\ckGamma, \cGamma, \enGamma', \oGamma) = \cdrej$
+        \\\quad or $\VCVerCommit(\ckPi, \cPi, \envarphin{i}', i, \oPi) = \cdrej$}{
+      \tcp{integrity check fails at $i$-th step; no certificate will be produced}
+      error handling\;
+      \Return{\cdrej}
+    } % end if
+    \tcp{integrity check succeeds; produce a certificate and send it to $\Naggr$}
+    produce $\pi_i$ for the $i$-th proof step\;
+    send $\pi_i$ to $\Naggr$ via an untrusted channel\;
+\caption{Proof Note: $\code{proof\_node\_assump}$}
+\label{alg:proof_node_assump}
+\end{algorithm}
+
+\begin{algorithm}
+\KwDescr{Called when a proof node receives $\cdax$ data
+         in \Cref{alg:proof_node}}
+    receive $\pr{\cdax, \ckPi, \cPi, \oPi, i} \gets$
+    the trusted channel\;
+    \tcp{receive data from the untrusted channel}
+    \tcp{the primes indicate that the data may be altered and is not trustworthy}
+    receive $\pr{\envarphin{i}', \alpha_i'} \gets$ 
+    the untrusted channel\;
+    \If{$\bptop(\cdax, \envarphin{i}', \alpha_i') = \cdrej$}{
+      \tcp{proof check fails at $i$-th step; no certificate will be produced}
+      error handling\;
+      \Return{\cdrej}
+    } % end if
+    \tcp{proof check succeeds; need to check integrity}
+    \If{$\VCVerCommit(\ckPi, \cPi, \envarphin{i}', i, \oPi) = \cdrej$}{
+      \tcp{integrity check fails at $i$-th step; no certificate will be produced}
+      error handling\;
+      \Return{\cdrej}
+    } % end if
+    \tcp{integrity check succeeds; produce a certificate and send it to $\Naggr$}
+    produce $\pi_i$ for the $i$-th proof step\;
+    send $\pi_i$ to $\Naggr$ via an untrusted channel\;
+\caption{Proof Note: $\code{proof\_node\_ax}$}
+\label{alg:proof_node_ax}
+\end{algorithm}
+
+\begin{algorithm}
+\KwDescr{Called when a proof node receives $\cdmp$ data
+         in \Cref{alg:proof_node}}
+    receive $\pr{\cdax, \ckPi, \cPi, \oPi, j_1, j_2, i} \gets$
+    the trusted channel\;
+    \tcp{receive data from the untrusted channel}
+    \tcp{the primes indicate that the data may be altered and is not trustworthy}
+    receive $\pr{\envarphin{j_1}', \envarphin{j_2}', \envarphin{i}', \alpha_i'} \gets$ 
+    the untrusted channel\;
+    \If{$\bptop(\cdmp, \envarphin{j_1}', \envarphin{j_2}', \envarphin{i}', \alpha_i') = \cdrej$}{
+      \tcp{proof check fails at $i$-th step; no certificate will be produced}
+      error handling\;
+      \Return{\cdrej}
+    } % end if
+    \tcp{proof check succeeds; need to check integrity}
+    \If{$\VCVerCommit(\ckPi, \cPi, \envarphin{j_1}', j_1, \oPi) = \cdrej$
+        \\\quad or $\VCVerCommit(\ckPi, \cPi, \envarphin{j_2}', j_2, \oPi) = \cdrej$
+        \\\quad or $\VCVerCommit(\ckPi, \cPi, \envarphin{i}', i, \oPi) = \cdrej$}{
+      \tcp{integrity check fails at $i$-th step; no certificate will be produced}
+      error handling\;
+      \Return{\cdrej}
+    } % end if
+    \tcp{integrity check succeeds; produce a certificate and send it to $\Naggr$}
+    produce $\pi_i$ for the $i$-th proof step\;
+    send $\pi_i$ to $\Naggr$ via an untrusted channel\;
+\caption{Proof Note: $\code{proof\_node\_mp}$}
+\label{alg:proof_node_mp}
+\end{algorithm}
+
+\begin{algorithm}
+\KwDescr{Called when a proof node receives $\cdother$ data
+         in \Cref{alg:proof_node}}
+    receive $\pr{\kappa, \ckPi, \cPi, \oPi, j, i} \gets$
+    the trusted channel\;
+    \tcp{receive data from the untrusted channel}
+    \tcp{the primes indicate that the data may be altered and is not trustworthy}
+    receive $\pr{\envarphin{j}', \envarphin{i}', \alpha_i'} \gets$ 
+    the untrusted channel\;
+    \If{$\bptop(\kappa, \envarphin{j}', \envarphin{i}', \alpha_i') = \cdrej$}{
+      \tcp{proof check fails at $i$-th step; no certificate will be produced}
+      error handling\;
+      \Return{\cdrej}
+    } % end if
+    \tcp{proof check succeeds; need to check integrity}
+        \If{$\VCVerCommit(\ckPi, \cPi, \envarphin{j}', j, \oPi) = \cdrej$
+        \\\quad or $\VCVerCommit(\ckPi, \cPi, \envarphin{i}', i, \oPi) = \cdrej$}{
+      \tcp{integrity check fails at $i$-th step; no certificate will be produced}
+      error handling\;
+      \Return{\cdrej}
+    } % end if
+    \tcp{integrity check succeeds; produce a certificate and send it to $\Naggr$}
+    produce $\pi_i$ for the $i$-th proof step\;
+    send $\pi_i$ to $\Naggr$ via an untrusted channel\;
+\caption{Proof Note: $\code{proof\_node\_other}$}
+\label{alg:proof_node_other}
+\end{algorithm}
+
+\begin{comment}
 We formalize the basic proof checking procedures that check the correctness of one-step Hilbert-style proofs.
 We split the arguments into \emph{public arguments} (listed before ``$;$'')
 and \emph{private arguments} (listed after ``$;$''). 
@@ -794,27 +1158,37 @@ only simplify the proof checking procedures.
 For simplicity, we can merge the above basic procedures into 
 a \emph{top procedure}:
 \begin{equation}
-\bptop(\enGamma, \enDelta, \envarphi ; \alpha) \in \{\cdsucc,\cdfail\}
+\bptop(\enGamma, \enDelta, \envarphi ; \beta) \in \{\cdsucc,\cdfail\}
 \end{equation}
-such that
-$\bptop(\enGamma, \enDelta, \envarphi ; \alpha)$ returns $\cdsucc$ iff
-one of the following conditions holds for some $\alpha'$:
+where $\beta = (i, \alpha)$ for 
+$i \in \{ \code{assump},
+          \code{ax},
+          \code{mp},
+          \code{gen},
+          \code{frame},
+          \code{subst},
+          \code{kt} \}$. 
+Intuitively, 
+$\bptop$ returns $\cdsucc$ iff
+the basic procedure specified by $i$ returns $\cdsucc$.
+Formally, $\bptop(\enGamma, \enDelta, \envarphi ; \alpha)$ returns $\cdsucc$
+iff one of the following conditions holds:
 \begin{enumerate}
-\item $\bpassump(\enGamma, \envarphi ; \alpha') = \cdsucc$
+\item $\bpassump(\enGamma, \envarphi ; \alpha) = \cdsucc$
       and $\Delta = \emptyset$.
-\item $\bpax(\envarphi; \alpha') = \cdsucc$
+\item $\bpax(\envarphi; \alpha) = \cdsucc$
       and $\Delta = \emptyset$.
-\item $\bpmp(\enpsin{1}, \enpsin{2}, \envarphi ; \alpha') = \cdsucc$
+\item $\bpmp(\enpsin{1}, \enpsin{2}, \envarphi ; \alpha) = \cdsucc$
       and $\Delta = \{\psi_1,\psi_2\}$.
-\item $\bpgen(\enpsi, \envarphi ; \alpha') = \cdsucc$
+\item $\bpgen(\enpsi, \envarphi ; \alpha) = \cdsucc$
       and $\Delta = \{\psi\}$.
-\item $\bpframe(\enpsi, \envarphi ; \alpha') = \cdsucc$
+\item $\bpframe(\enpsi, \envarphi ; \alpha) = \cdsucc$
       and $\Delta = \{\psi\}$.
-\item $\bpsubst(\enpsi, \envarphi ; \alpha') = \cdsucc$
+\item $\bpsubst(\enpsi, \envarphi ; \alpha) = \cdsucc$
       and $\Delta = \{\psi\}$.
-\item $\bpkt(\enpsi, \envarphi ; \alpha') = \cdsucc$
+\item $\bpkt(\enpsi, \envarphi ; \alpha) = \cdsucc$
       and $\Delta = \{\psi\}$.
-\item $\bpkt(\enpsi, \envarphi ; \alpha') = \cdsucc$
+\item $\bpkt(\enpsi, \envarphi ; \alpha) = \cdsucc$
       and $\Delta = \{\psi\}$.
 \end{enumerate}
 In other words, $\Delta$ is the set of premises used by a proof step. 
@@ -829,16 +1203,82 @@ there exists $\Delta_i$ and $\alpha_i$ for $1 \le i \le n$ such that
 \begin{enumerate}
 \item $\bptop(\enGamma, \enDeltan{i}, \envarphin{i} ; \alpha_i) = \cdsucc$
       for all $1 \le i \le n$;
-\item $\Delta_0 = \emptyset$, and 
+\item $\Delta_1 = \emptyset$, and 
       $\Delta_i \subseteq \{\varphi_1,\dots,\varphi_{i-1}\}$ 
       for all $2 \le i \le n$.
 \end{enumerate}
 \end{theorem}
 
-Let $(\PPbasic, \VVbasic)$
+We can generate cryptographic certificates for the top procedure $\bptop$.
+More specifically, there exists a cryptographic proof system
+$(\PPbasic, \VVbasic)$
+where the prover $\PPbasic$ produces
+a cryptographic certificate $\pibasic$ for 
+$\enGamma$, $\enDelta$, $\envarphi$, and $\alpha$; that is,
+\begin{equation}
+\PPbasic(\enGamma, \enDelta, \envarphi, \alpha) = \pibasic
+\end{equation}
+The verifier $\VVbasic(\enGamma, \enDelta, \envarphi, \pibasic)$
+returns $\cdacc$ or $\cdrej$. 
+Such a cryptographic proof system for basic proofs
+should satisfy the following soundness and completeness property:
+\begin{enumerate}
+\item If $\bptop(\enGamma, \enDelta, \envarphi ; \alpha) = \cdsucc$,
+      we have $\VVbasic(\enGamma, \enDelta, \envarphi, \PPbasic(\enGamma, \enDelta, \envarphi, \alpha)) = \cdacc$. 
+\item If $\bptop(\enGamma, \enDelta, \envarphi ; \alpha) = \cdfail$,
+      we have $\VVbasic(\enGamma, \enDelta, \envarphi, \PP'(\enGamma, \enDelta, \envarphi, \alpha)) = \cdrej$ with high probability, 
+      for any poly-time $\PP'$. 
+\end{enumerate}
 
-\subsection{Phase 2: Information Sharing}
+\subsubsection{Component 2: Step Procedures}
+\label{sec:info_sharing}
 
-\subsection{Phase 3: Certificate Aggregation}
+Let $1 \le i \le n$ and 
+$\pibn{i} = \PPbasic(\enGamman{i}, \enDeltan{i}, \envarphin{i}, \alpha_i)$,
+which is the cryptographic certificate for checking the one-step
+Hilbert proof for $\varphi_i$. 
+However, it is not enough to just check the correctness of 
+$\pibn{i}$ for $1 \le i \le n$. 
+We also need to ensure that all the $\pibn{i}$'s belong to the same
+Hilbert proof and agree on the same underlying theory that is being used. 
+More specifically, we need to ensure that
+\begin{enumerate}
+\item $\Gamma_i = \Gamma$ for all $1 \le i \le n$, where $\Gamma$ is the 
+      underlying theory in \Cref{eq:goal}. 
+\item $\Delta_1 = \emptyset$ and $\Delta_i \subseteq 
+      \{\varphi_1,\dots,\varphi_{i-1}\}$ for all $2 \le i \le n$. 
+\end{enumerate}
 
+We can use cryptographic commitment schemes to synchronize the $n$ instances of basic procedures and share the necessary information among them. 
+We build a Merkel tree $\MT$
+with $N = 2^{\ceil{\log_2(n+1)}}$ leaf nodes. 
+In other words, $N$ is the smallest power of 2 such that $N \ge n+1$. 
+From left to right, the first leaf node has the hash of $\Gamma$, denoted
+$\hof{\Gamma}$. 
+The second to the $(n+1)$-th leaf nodes are the hashes of
+$\varphi_1,\dots,\varphi_n$, respectively. 
+The rest leaf nodes are filled with the hashes of a distinguished value,
+denoted $\hof{\bot}$, indicating that they do not represent any meaningful components of the Hilbert proof. 
+Let $\cMT$ be the hash associated with the root of $\MT$. 
+Note that $\cMT$ can be computed solely from the Hilbert proof. 
+
+To ensure the second condition regarding $\Delta_i$'s, we build another
+Merkel tree $\MM$ of the same size as $\MT$.
+The leaf nodes of $\MM$ are the hash values of the cryptographic certificates
+for proving the patterns whose hash values are associated with the leaf nodes of $\MT$ at the corresponding locations. 
+More specifically, from left to right, the first leaf node of $\MM$ is left empty (i.e., $\hof{\bot}$). 
+The second to the $(n+1)$-th leaf nodes are hashes of
+$\pibn{1},\dots,\pibn{n}$, respectively. 
+For every $i$, we check that $\Delta_i$ only uses patterns in $\MT$
+that are located on the left side of $\varphi_i$. 
+\end{comment}
+
+\subsubsection{Aggregation Node}
+
+The aggregation node $\Naggr$ simply collects
+all the cryptographic certificates from the proof nodes and aggregate them
+into a final certificate, using techniques such as recursive SNARKs,
+SnarkPack\footnote{\url{https://eprint.iacr.org/2021/529}},
+or incrementally verifiable computation (IVC). 
+ 
 \end{document}

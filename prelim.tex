@@ -3,7 +3,9 @@
 
 \usepackage{amsmath,amssymb,amsthm}
   \allowdisplaybreaks % allow page breaks inside displayed equations
+\usepackage[ruled,linesnumbered]{algorithm2e}
 \usepackage{booktabs}
+\usepackage{comment}
 \usepackage{hyperref,cleveref}
 \usepackage{mathtools}
 \usepackage{prftree}
@@ -14,6 +16,10 @@
   \newtheorem{definition}{Definition}
 \theoremstyle{theorem}
   \newtheorem{theorem}{Theorem}
+
+% algorithm2e
+\SetKwInput{KwParam}{Parameters}
+\SetKwInput{KwDescr}{Description}
 
 \newcommand{\K}{\ensuremath{\mathbb{K}}\xspace}
 \newcommand{\imp}{\to} % implication (logic)
@@ -59,22 +65,50 @@
   \newcommand{\cdacc}{\code{accept}}   % accept flag
   \newcommand{\cdrej}{\code{reject}}   % reject flag
   \newcommand{\cdsum}{\code{sum.imp}\xspace} % sum program
+  \newcommand{\cdassump}{\code{assump}}
+  \newcommand{\cdax}{\code{ax}}
+  \newcommand{\cdmp}{\code{mp}}
+  \newcommand{\cdother}{\code{other}}
 \newcommand{\mkth}[1]{\Gamma^{\mathsf{#1}}} % make a logical theory
   \newcommand{\GammaIMP}{\mkth{IMP}}
+\newcommand{\ceil}[1]{\left\lceil #1 \right\rceil}
+\newcommand{\floor}[1]{\left\lfloor #1 \right\rfloor}
 % useful formulas with sub/super-scripts
-  \newcommand{\varphisum}{\varphi_\cdsum} % \varphi_sum
+\newcommand{\varphisum}{\varphi_\cdsum} % \varphi_sum
 % mathcal
-  \newcommand{\PP}{\mathcal{P}}
-    \newcommand{\PPbasic}{\PP_\code{basic}}
-  \newcommand{\VV}{\mathcal{V}}
-    \newcommand{\VVbasic}{\VV_\code{basic}}
+\newcommand{\AAc}{\mathcal{A}}
+\newcommand{\CC}{\mathcal{C}}
+\newcommand{\DD}{\mathcal{D}}
+\newcommand{\II}{\mathcal{I}}
+\newcommand{\OO}{\mathcal{O}}
+\newcommand{\PP}{\mathcal{P}}
+\newcommand{\VV}{\mathcal{V}}
+\newcommand{\TT}{\mathcal{T}}
+\newcommand{\MM}{\mathcal{M}}
+\newcommand{\NN}{\mathcal{N}}
+% mathbb
+\newcommand{\NNN}{\mathbb{N}}
+% mathbb
+
 % ZK
-  \newcommand{\ZKprover}{\PP}
-  \newcommand{\ZKverifier}{\VV}
+\newcommand{\ZKprover}{\PP}
+  \newcommand{\PPbasic}{\PP_\code{basic}}
+\newcommand{\ZKverifier}{\VV}
+  \newcommand{\VVbasic}{\VV_\code{basic}}
+\newcommand{\pibasic}{\pi_\code{basic}}
+\newcommand{\pibn}[1]{\pi_{\code{basic},#1}}
+\newcommand{\MT}{\TT}
+\newcommand{\MTGamma}{\TT_\Gamma}
+\newcommand{\MTPi}{\TT_\Pi}
+\newcommand{\cMT}{c_\MT}
+\newcommand{\cPi}{c_\Pi}
+\newcommand{\oPi}{o_\Pi}
+\newcommand{\cGamma}{c_\Gamma}
+\newcommand{\oGamma}{o_\Gamma}
 % nonlogical symbols
-\newcommand{\nl}[1]{\mathsf{#1}}
-  \newcommand{\nlzero}{\nl{zero}}
-  \newcommand{\nlsucc}{\nl{succ}}
+\newcommand{\nlsymbol}[1]{\mathsf{#1}}
+  \newcommand{\nlzero}{\nlsymbol{zero}}
+  \newcommand{\nlsucc}{\nlsymbol{succ}}
 % concrete (non-meta) variables
 \newcommand{\cv}[1]{\mathsf{#1}}
   \newcommand{\cvx}{\cv{x}}
@@ -89,13 +123,43 @@
   \newcommand{\bpframe}{\bp{frame}}
   \newcommand{\bpsubst}{\bp{subst}}
   \newcommand{\bpkt}{\bp{kt}}
-  \newcommand{\bptop}{\bp{top}}
+  \newcommand{\bptop}{\code{basic\_prove}}
 % encoding
 \newcommand{\en}[1]{\left\llbracket #1 \right\rrbracket}
   \newcommand{\enGamma}{\en{\Gamma}}
+  \newcommand{\enGamman}[1]{\en{\Gamma_{#1}}}
   \newcommand{\envarphi}{\en{\varphi}}
   \newcommand{\envarphin}[1]{\en{\varphi_{#1}}}
   \newcommand{\enpsi}{\en{\psi}}
   \newcommand{\enpsin}[1]{\en{\psi_{#1}}}
   \newcommand{\enDelta}{\en{\Delta}}
   \newcommand{\enDeltan}[1]{\en{\Delta_{#1}}}
+% hash and commitment
+\newcommand{\hof}[1]{h(#1)}
+\newcommand{\Com}{\code{Com}}
+\newcommand{\CSCommit}{\code{CS.Commit}}
+\newcommand{\CSVerCommit}{\code{CS.VerCommit}}
+\newcommand{\CSSetup}{\code{CS.Setup}}
+\newcommand{\VCCommit}{\code{VC.Commit}}
+\newcommand{\VCVerCommit}{\code{VC.VerCommit}}
+\newcommand{\VCSetup}{\code{VC.Setup}}
+\newcommand{\ck}{\mathit{ck}}
+  \newcommand{\ckGamma}{\ck_\Gamma}
+  \newcommand{\ckPi}{\ck_\Pi}
+\newcommand{\Ispace}{\II}
+\newcommand{\Ospace}{\OO}
+\newcommand{\Cspace}{\CC}
+\newcommand{\Adversary}{\AAc}
+\newcommand{\negl}{\code{negl}}
+% data space
+\newcommand{\Data}{\DD}
+\newcommand{\Dpattern}{\DD_\textit{pattern}}
+\newcommand{\Dtheory}{\DD_\textit{theory}}
+% proof network
+\newcommand{\PNet}{\NN}
+\newcommand{\Ninit}{\mathit{IN}}
+\newcommand{\Naggr}{\mathit{AN}}
+\newcommand{\Npr}{\mathit{PN}}
+  \newcommand{\Nprn}[1]{\Npr_{#1}}
+% vectors
+\newcommand{\vecu}{\vec{u}}
