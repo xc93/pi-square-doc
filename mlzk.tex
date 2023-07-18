@@ -5,17 +5,22 @@
 \input{prelim}
 
 \title{Matching Logic Proofs Meet Succinct Cryptographic Proofs}
-\author{}
+\author{Bolton Bailey\textsuperscript{1} \and Xiaohong Chen\textsuperscript{1} \and Adam Fiedler\textsuperscript{3} \and Harjasleen Malvai\textsuperscript{1} \and Andrew Miller\textsuperscript{1} \and Pratyush Mishra\textsuperscript{2} \and Nishant Rodrigues\textsuperscript{1} \and Grigore Rosu\textsuperscript{1,3}}
 \date{}
 
 \begin{document}
 
 \maketitle
+\begin{center}
+\textsuperscript{1}University of Illinois Urbana-Champaign, USA\\
+\textsuperscript{2}University of Pennsylvania, USA\\
+\textsuperscript{3}Runtime Verification Inc., USA
+\end{center}
 
 \begin{abstract}
 We first present the syntax and proof system of matching logic.
-Then, we introduce the research problem of producing embarrassingly parallel 
-cryptographic proofs for matching logic. 
+Then, we introduce the research problem of producing embarrassingly parallel
+cryptographic proofs for matching logic.
 \end{abstract}
 
 \tableofcontents
@@ -23,8 +28,8 @@ cryptographic proofs for matching logic.
 \section{Matching Logic}
 
 We present matching logic syntax in \Cref{sec:ml_syntax}
-and its proof system in \Cref{sec:ml_proof_system}. 
-We introduce the matching logic proof checker in \Cref{sec:ml_proof_checker}. 
+and its proof system in \Cref{sec:ml_proof_system}.
+We introduce the matching logic proof checker in \Cref{sec:ml_proof_checker}.
 
 \subsection{Matching Logic Syntax}
 \label{sec:ml_syntax}
@@ -32,30 +37,30 @@ We introduce the matching logic proof checker in \Cref{sec:ml_proof_checker}.
 We fix countably infinite sets $\EV$ and $\SV$, where
 \begin{enumerate}
 \item $\EV$ is a set of \emph{element variables},
-      often denoted $x$, $y$, and $z$. 
+      often denoted $x$, $y$, and $z$.
 \item $\SV$ is a set of \emph{set variables},
       often denoted $X$, $Y$, and $Z$.
 \end{enumerate}
-We assume that $\EV$ and $\SV$ are disjoint, i.e., $\EV \cap \SV = \emptyset$. 
+We assume that $\EV$ and $\SV$ are disjoint, i.e., $\EV \cap \SV = \emptyset$.
 A \emph{variable}, often denoted $u$ and $v$,
 is either an element variable or a set variable.
 We write $u \equiv v$ iff $u$ and $v$ denote the same variable.
-We write $u \not\equiv v$ iff $u$ and $v$ denote two distinct variables. 
+We write $u \not\equiv v$ iff $u$ and $v$ denote two distinct variables.
 
 \begin{definition}
 \label{def:ml_patterns}
-A \emph{signature} $\Sigma$ is a set whose elements are called 
-\emph{symbols}, often denoted $\sigma$. 
+A \emph{signature} $\Sigma$ is a set whose elements are called
+\emph{symbols}, often denoted $\sigma$.
 The set of \emph{$\Sigma$-patterns},
 or simply \emph{patterns} when $\Sigma$ is understood,
 is inductively defined by the following grammar:
 \begin{align*}
-\varphi 
-&\Coloneqq x 
-  && \text{\Slash Element Variable} 
-\\&\ \ \ \mid X 
+\varphi
+&\Coloneqq x
+  && \text{\Slash Element Variable}
+\\&\ \ \ \mid X
   && \text{\Slash Set Variable}
-\\&\ \ \ \mid \sigma 
+\\&\ \ \ \mid \sigma
   && \text{\Slash Symbol}
 \\&\ \ \ \mid \varphi_1 \, \varphi_2
   && \text{\Slash Application}
@@ -67,8 +72,8 @@ is inductively defined by the following grammar:
   && \text{\Slash Least Fixpoint}
 \end{align*}
 where $\mu X \ld \varphi$ requires that $\varphi$ is positive in $X$,
-which means that $X$ is not nested in an odd number 
-of times on the left-hand side of an implication. 
+which means that $X$ is not nested in an odd number
+of times on the left-hand side of an implication.
 \end{definition}
 
 The following are some well-formed least fixpoint patterns:
@@ -92,10 +97,10 @@ for example, $\varphi_1 \, \varphi_2 \, \varphi_3$ means
 $(\varphi_1 \, \varphi_2) \, \varphi_3$.
 Implication is right-associative;
 for example, $\varphi_1 \imp \varphi_2 \imp \varphi_3$ means
-$\varphi_1 \imp (\varphi_2 \imp \varphi_3)$. 
+$\varphi_1 \imp (\varphi_2 \imp \varphi_3)$.
 Application has a higher precedence than implication;
 for example, $\varphi_1 \imp \varphi_2 \, \varphi_3$ means
-$\varphi_1 \imp (\varphi_2 \, \varphi_3)$. 
+$\varphi_1 \imp (\varphi_2 \, \varphi_3)$.
 The scope of $\exists x$ and $\mu X$ goes as far to right as possible,
 for example, $\exists x \ld \varphi_1 \imp \varphi_2$ means
 $\exists x \ld (\varphi_1 \imp \varphi_2)$,
@@ -103,20 +108,20 @@ and not $(\exists x \ld \varphi_1) \imp \varphi_2$.
 
 \Cref{def:ml_patterns} includes 7 \emph{primitive constructs} of matching logic.
 Besides these primitive constructs, we also allow \emph{notations}
-(also called 
+(also called
 abbreviations, short-hands, derived constructs, or syntactic sugar),
-which are constructs that can be defined using the primitive ones. 
+which are constructs that can be defined using the primitive ones.
 The following are some commonly used notations:
 \begin{align}
-\top 
+\top
 &\equiv \exists x \ld x
 &&\text{\Slash Logical True}
 \\
-\bot 
+\bot
 &\equiv \mu X \ld X
 &&\text{\Slash Logical False}
 \\
-\neg \varphi 
+\neg \varphi
 &\equiv \varphi \imp \bot
 &&\text{\Slash Negation}
 \\
@@ -141,20 +146,20 @@ The following are some commonly used notations:
 &&\text{\Slash Greatest Fixpoint}
 \end{align}
 where $\varphi[\neg X / X]$ is the pattern obtained by
-substituting $\neg X$ for $X$ in $\varphi$. 
-We formally define substitution in \Cref{def:substitutions}. 
+substituting $\neg X$ for $X$ in $\varphi$.
+We formally define substitution in \Cref{def:substitutions}.
 
 
 
-Among the primitive constructs, $\exists x$ and $\mu X$ are \emph{binders}. 
+Among the primitive constructs, $\exists x$ and $\mu X$ are \emph{binders}.
 We define the concepts that are important to binders:
 \emph{free variables}, \emph{$\alpha$-renaming}, and
 \emph{capture-avoiding substitution}.
 These definitions are standard
 but we still present all the technical details to make this article
-self-contained. 
+self-contained.
 Readers who are already familiar with these concepts can skip
-the rest and jump to \Cref{sec:ml_proof_system}. 
+the rest and jump to \Cref{sec:ml_proof_system}.
 
 \begin{definition}
 Given a pattern $\varphi$,
@@ -169,18 +174,18 @@ define its set of \emph{free variables}, denoted $\FV{\varphi}$, as follows:
 \item $\FV{\exists x \ld \varphi} = \FV{\varphi} \setminus \{x\}$
 \item $\FV{\mu X \ld \varphi} = \FV{\varphi} \setminus \{X\}$
 \end{enumerate}
-We say that $\varphi$ is \emph{closed} if $\FV{\varphi} = \emptyset$. 
+We say that $\varphi$ is \emph{closed} if $\FV{\varphi} = \emptyset$.
 \end{definition}
 
 We can categorize the occurrences of a variable in a pattern
 into \emph{free} and \emph{bound} occurrences,
 based on whether the occurrence is within the scope
-of a corresponding binder. 
+of a corresponding binder.
 
 \begin{definition}
 For any $x$, $X$, and $\varphi$,
 \begin{enumerate}
-\item A \emph{free occurrence} of $x$ in $\varphi$ 
+\item A \emph{free occurrence} of $x$ in $\varphi$
       is an occurrence that is not within the scope of any $\exists x$ binder;
 \item A \emph{free occurrence} of $X$ in $\varphi$
       is an occurrence that is not within the scope of any $\mu X$ binder;
@@ -189,44 +194,44 @@ For any $x$, $X$, and $\varphi$,
 \item A \emph{bound occurrence} of $X$ is an occurrence
       within the scope of a $\mu X$ binder.
 \end{enumerate}
-We say that a variable is \emph{bound} in a pattern if 
-all occurrences are bound. 
+We say that a variable is \emph{bound} in a pattern if
+all occurrences are bound.
 We say that a variable is \emph{fresh} w.r.t. a pattern if
-there are no occurrences, free or bound, of the variable. 
+there are no occurrences, free or bound, of the variable.
 \end{definition}
 
 As an example, consider the pattern
 $x \land \exists x \exists y \ld x \land y$
-where $x \not\equiv y$. 
-This pattern 
+where $x \not\equiv y$.
+This pattern
 has two occurrences of $x$ and one occurrence of $y$.\footnote{Note that we do not count $\exists x$ and $\exists y$ as occurrences, although some works do count them and call them \emph{binding} occurrences. In this article, we only consider free and bound occurrences and regard
 $\exists x$ and $\mu X$ as syntactic constructs.}
 The left-most $x$ is a free occurrence.
-The right-most $x$ and the right-most $y$ are both bound occurrences. 
+The right-most $x$ and the right-most $y$ are both bound occurrences.
 
-We can rename a bound variable to a fresh variable. 
-Such operation is called \emph{$\alpha$-renaming}. 
-For example, the above example pattern 
+We can rename a bound variable to a fresh variable.
+Such operation is called \emph{$\alpha$-renaming}.
+For example, the above example pattern
 $x \land \exists x \exists y \ld x \land y$
 can be $\alpha$-renamed into
-$x \land \exists z \exists y \ld z \land y$, 
-where $z \not\equiv x$ and $z \not\equiv y$. 
+$x \land \exists z \exists y \ld z \land y$,
+where $z \not\equiv x$ and $z \not\equiv y$.
 
 \begin{definition}
-Let $\varphi_1$ and $\varphi_2$ be patterns. 
+Let $\varphi_1$ and $\varphi_2$ be patterns.
 We say that $\varphi_1$ and $\varphi_2$
 are \emph{$\alpha$-equivalent}, written $\varphi_1 \equiv_\alpha \varphi_2$,
 iff $\varphi_1$ can be transformed into $\varphi_2$ after applying
-a finite number of $\alpha$-renamings. 
+a finite number of $\alpha$-renamings.
 \end{definition}
 
 It is straightforward to show that $\alpha$-equivalence
-is indeed an equivalence relation. 
+is indeed an equivalence relation.
 In fact, $\alpha$-equivalence is the reflexive, commutative, and transitive
-closure of $\alpha$-renaming. 
+closure of $\alpha$-renaming.
 
 Sometimes, it takes more than one $\alpha$-renaming to transform
-a pattern into an $\alpha$-equivalent one. 
+a pattern into an $\alpha$-equivalent one.
 For example, $x \land \exists x \exists y \ld x \land y$
 and $x \land \exists y \exists x \ld y \land x$ are $\alpha$-equivalent,
 but it takes three $\alpha$-renamings to transform the former into the latter:
@@ -239,16 +244,16 @@ x \land \exists z \exists x \ld z \land x
 \xto{$\alpha$-renaming}
 x \land \exists y \exists x \ld y \land x
 \end{align}
-In the above $z$ is fresh; that is, $z \not\equiv x$ and $z \not\equiv y$. 
+In the above $z$ is fresh; that is, $z \not\equiv x$ and $z \not\equiv y$.
 
-Note that a notation can be a binder. 
+Note that a notation can be a binder.
 For example, $\forall x$, which is a notation defined by
 $\forall x \ld \varphi \equiv \neg \exists x \ld \neg \varphi$,
 is a binder.
 Therefore, all occurrences of $x$ in $\forall x \ld \varphi$ are bound,
-and $\FV{\forall x \ld \varphi} = \FV{\varphi} \setminus \{x\}$. 
+and $\FV{\forall x \ld \varphi} = \FV{\varphi} \setminus \{x\}$.
 
-Next, we define substitution. 
+Next, we define substitution.
 Because we have binders, we need to be careful to avoid the
 infamous phenomenon of free variable capture,
 illustrated by the following example.
@@ -257,31 +262,31 @@ where $x \not\equiv y$
 and we want to substitute $y$ for $x$ in $\varphi$.
 If we do it blindly by replacing every (free) occurrence of $y$ with $x$,
 we get
-$\exists x \ld x \imp x$. 
-This is unintended because $y$, which is previously not within the scope of $\exists x$, is now bound. 
-The correct way to do substitution 
+$\exists x \ld x \imp x$.
+This is unintended because $y$, which is previously not within the scope of $\exists x$, is now bound.
+The correct way to do substitution
 is to first $\alpha$-rename
-$\exists x \ld x \imp y$ into $\exists z \ld z \imp y$, for some fresh variable $z$. 
+$\exists x \ld x \imp y$ into $\exists z \ld z \imp y$, for some fresh variable $z$.
 Then, we apply the substitution and obtain the correct result
-$\exists z \ld z \imp x$. 
-Note that this time, $x$ is no longer bound, which is intended. 
+$\exists z \ld z \imp x$.
+Note that this time, $x$ is no longer bound, which is intended.
 
-The operation described above is called \emph{capture-avoiding substitution}. 
+The operation described above is called \emph{capture-avoiding substitution}.
 As we can see from the above example, capture-avoiding substitution needs
 $\alpha$-renaming to avoid free variable capture.
 In the literature, there are two standard
 approaches to define capture-avoiding substitution:
 \begin{enumerate}
-\item We can define capture-avoiding substitution as a partial function 
+\item We can define capture-avoiding substitution as a partial function
       that is undefined in the case of free variable capture.
-      In this approach, $\alpha$-renaming happens explicitly to avoid free variable capture. 
+      In this approach, $\alpha$-renaming happens explicitly to avoid free variable capture.
 \item We can define capture-avoiding substitution as a total function
       on $\alpha$-equivalence classes. In this approach, $\alpha$-renaming
-      happens implicitly to avoid free variable capture. 
+      happens implicitly to avoid free variable capture.
 \end{enumerate}
 In this article, we take the second approach;
-that is, we always work with $\alpha$-equivalence classes 
-throughout the article. 
+that is, we always work with $\alpha$-equivalence classes
+throughout the article.
 
 
 \begin{definition}
@@ -293,7 +298,7 @@ $\psi$ for $v$ in $\varphi$ as follows:
 \item $v[\psi/v] = \psi$
 \item $u[\psi/v] = u$ if $u \not\equiv v$
 \item $\sigma[\psi/v] = \sigma$
-\item $(\varphi_1 \, \varphi_2)[\psi/v] 
+\item $(\varphi_1 \, \varphi_2)[\psi/v]
        = (\varphi_1[\psi/v]) \, (\varphi_2[\psi/v])$
 \item $(\varphi_1 \imp \varphi_2)[\psi/v]
        =\varphi[\psi/v] \imp \varphi_2[\psi/v]$
@@ -306,59 +311,59 @@ $\psi$ for $v$ in $\varphi$ as follows:
 \end{enumerate}
 \end{definition}
 
-Before we move on, we have a remark on the presentation of binders. 
+Before we move on, we have a remark on the presentation of binders.
 Binders and their binding behaviors are known to be a non-trivial matter
-in the study of formal logic and its syntax. 
-Our presentation in this article 
-is a classic textbook presentation 
-where variables are represented by their names. 
-A \emph{nameless} presentation such as De Bruijn index 
+in the study of formal logic and its syntax.
+Our presentation in this article
+is a classic textbook presentation
+where variables are represented by their names.
+A \emph{nameless} presentation such as De Bruijn index
 (\url{https://en.wikipedia.org/wiki/De_Bruijn_index})
-is an encoding method that represents bound variables by numbers instead of their names. 
+is an encoding method that represents bound variables by numbers instead of their names.
 These numbers, called De Bruijn indices, denote the number of (nest) binders
-on top of a bound variable. 
+on top of a bound variable.
 De Bruijn index has the advantage that $\alpha$-equivalent terms
 have the same encoding
-so checking $\alpha$-equivalence is the same as checking syntactic equality. 
+so checking $\alpha$-equivalence is the same as checking syntactic equality.
 Locally nameless approach
 (\url{https://chargueraud.org/research/2009/ln/main.pdf})
 uses De Bruijn indices only for bound variables
-and retains names for free variables for readability. 
+and retains names for free variables for readability.
 Nominal approach (\url{https://www.sciencedirect.com/science/article/pii/S089054010300138X})
 uses \emph{swapping} and \emph{freshness} as the primitives notions/operations
-regarding binders, instead of using 
-$\alpha$-equivalence and capture-avoiding substitution as the primitive. 
+regarding binders, instead of using
+$\alpha$-equivalence and capture-avoiding substitution as the primitive.
 The reason is that swapping and freshness have simpler definitions
 than $\alpha$-equivalence and (especially) capture-avoiding substitution.
 Higher-order abstract syntax (HOAS) studies data structures
-that explicit expose the relationship between variables and their corresponding binders. 
+that explicit expose the relationship between variables and their corresponding binders.
 There is extensive study on matching and unification algorithms
 modulo $\alpha$-equivalence in the literature on
-nominal and HOAS approaches. 
+nominal and HOAS approaches.
 
-We are open to all these approaches regarding binders. 
+We are open to all these approaches regarding binders.
 
 \subsection{Matching Logic Proof System}
 \label{sec:ml_proof_system}
 
-We present the entire matching logic proof system in 
+We present the entire matching logic proof system in
 \Cref{fig:ml-proof-system}.
 To understand the proof system, we first need the following definition.
 
 \begin{definition}
 Let $\hole$ be a distinguished element variable.
 An \emph{application context} is a pattern
-where $\hole$ has exactly one occurrence, which is under 
-a number of nested applications. 
-More formally, 
+where $\hole$ has exactly one occurrence, which is under
+a number of nested applications.
+More formally,
 \begin{enumerate}
 \item $\hole$ is an application context, called the \emph{identity context};
 \item if $C$ is an application context and $\varphi$ is a pattern
       with no occurrences of $\hole$,
-      both $(C \, \varphi)$ and $(\varphi \, C)$ are application contexts. 
+      both $(C \, \varphi)$ and $(\varphi \, C)$ are application contexts.
 \end{enumerate}
 For an application context $C$ and a pattern $\psi$,
-we write $C[\psi]$ to mean $C[\psi/\hole]$. 
+we write $C[\psi]$ to mean $C[\psi/\hole]$.
 \end{definition}
 
 \begin{figure}[t]
@@ -368,7 +373,7 @@ we write $C[\psi]$ to mean $C[\psi/\hole]$.
 \toprule
 \pruleLuk
 &
-$((\varphi_1 \imp \varphi_2) \imp \varphi_3) 
+$((\varphi_1 \imp \varphi_2) \imp \varphi_3)
    \imp ((\varphi_3 \imp \varphi_1) \imp (\varphi_4 \imp \varphi_1))$
 & axiom schema
 \\
@@ -436,30 +441,30 @@ $\neg (\appCa{x \land \varphi} \land \appCb{x \land \neg\varphi})$
 \label{fig:ml-proof-system}
 \end{figure}
 
-An \emph{axiom schema} (or \emph{schema}) is 
+An \emph{axiom schema} (or \emph{schema}) is
 a pattern with the occurrence of \emph{metavariables}, such as $x$, $X$, $C$, and $\varphi$.
-For example, 
+For example,
 \pruleLuk
 is a schema with four metavariables
 $\varphi_1$, $\varphi_2$, $\varphi_3$, and $\varphi_4$.
 \[
 \pruleLuk
 \quad
-((\varphi_1 \imp \varphi_2) \imp \varphi_3) 
+((\varphi_1 \imp \varphi_2) \imp \varphi_3)
    \imp ((\varphi_3 \imp \varphi_1) \imp (\varphi_4 \imp \varphi_1))
 \]
 An \emph{instance} of a schema is the pattern obtained by
-instantiating all the metavariables in the said schema. 
+instantiating all the metavariables in the said schema.
 The following are all instances of \pruleLuk.
 \begin{align*}
-((\bot \imp \top) \imp \nlzero) 
+((\bot \imp \top) \imp \nlzero)
    \imp ((\nlzero \imp \bot) \imp ((\nlsucc \, \nlzero) \imp \bot))
 \\
-((\bot \imp \top) \imp (\nlzero \imp \bot)) 
+((\bot \imp \top) \imp (\nlzero \imp \bot))
    \imp (((\nlzero \imp \bot) \imp \bot) \imp (\bot \imp \bot))
 \end{align*}
-where $\nlzero,\nlsucc \in \Sigma$ are two (concrete) symbols in the signature. 
-\pruleQ is a schema with metavariables $x$, $y$, and $\varphi$. 
+where $\nlzero,\nlsucc \in \Sigma$ are two (concrete) symbols in the signature.
+\pruleQ is a schema with metavariables $x$, $y$, and $\varphi$.
 \[
 \pruleQ \quad \varphi[y/x] \imp \exists x \ld \varphi
 \]
@@ -469,7 +474,7 @@ The following are all instances of \pruleQ.
 \\
 (\cvx \land \cvy) \imp \exists \cvx \ld (\cvx \land \cvy)
 \end{align*}
-where $\cvx$ and $\cvy$ are concrete (non-meta) element variables. 
+where $\cvx$ and $\cvy$ are concrete (non-meta) element variables.
 
 A \emph{rule of inference (schema)} is a pair of
 some \emph{premises} and one \emph{conclusion},
@@ -478,21 +483,21 @@ Rules of inference are written as shown below:
 \[
 \prftree{\varphi_1}{\cdots}{\varphi_n}{\psi}
 \]
-We write the premises above the line and the conclusion below the line. 
+We write the premises above the line and the conclusion below the line.
 An \emph{instance} of a rule of inference is obtained by
-instantiating all the metavariables in the rule of inference. 
+instantiating all the metavariables in the rule of inference.
 
 The matching logic proof system as shown in \Cref{fig:ml-proof-system}
-has 7 axiom schemas and 5 rules of inference. 
+has 7 axiom schemas and 5 rules of inference.
 We call axiom schemas and rules of inference \emph{proof rules}.
-Matching logic has 7 + 5 = 12 proof rules. 
+Matching logic has 7 + 5 = 12 proof rules.
 
 \begin{definition}
 A \emph{theory} is a pair $(\Sigma,\Gamma)$
-where $\Sigma$ is a signature and $\Gamma$ is a set of $\Sigma$-patterns, 
-called \emph{non-logical axioms}. 
+where $\Sigma$ is a signature and $\Gamma$ is a set of $\Sigma$-patterns,
+called \emph{non-logical axioms}.
 When $\Sigma$ can be understood from the context,
-we abbreviate $(\Sigma, \Gamma)$ as $\Gamma$. 
+we abbreviate $(\Sigma, \Gamma)$ as $\Gamma$.
 \end{definition}
 
 \begin{definition}
@@ -507,16 +512,16 @@ where $n \ge 1$, and for every $1 \le i \le n$, one of the following holds:
 \item $\varphi_i \in \Gamma$;
 \item $\varphi_i$ is an instance of one of the 7 axiom schemas;
 \item $\varphi_i$ can be derived using one of the 5 rules of inference
-      from previous derived patterns 
-      (i.e., those in $\{\varphi_1,\dots,\varphi_{i-1}\}$) as premises.  
+      from previous derived patterns
+      (i.e., those in $\{\varphi_1,\dots,\varphi_{i-1}\}$) as premises.
 \end{enumerate}
-We write $\Gamma \vdash \varphi$, meaning that $\varphi$ is provable/derivable from $\Gamma$, 
-iff there exists a Hilbert $\Gamma$-proof for $\varphi$. 
+We write $\Gamma \vdash \varphi$, meaning that $\varphi$ is provable/derivable from $\Gamma$,
+iff there exists a Hilbert $\Gamma$-proof for $\varphi$.
 \end{definition}
 
 Note that a Hilbert $\Gamma$-proof for $\varphi$ can always be re-arranged
 such that it starts with the axioms in $\Gamma$, followed by logical axioms
-and conclusions of applying the rules of inference. 
+and conclusions of applying the rules of inference.
 More formally, if $\varphi$ has a Hilbert $\Gamma$-proof, i.e., $\Gamma \vdash \varphi$, then there must exist
 a Hilbert $\Gamma$-proof
 \begin{equation}
@@ -527,32 +532,32 @@ a Hilbert $\Gamma$-proof
 such that $\varphi_1,\dots,\varphi_k \in \Gamma$,
 $\varphi_{k+1},\dots,\varphi_l$ are logical axioms,
 $\varphi_{l+1},\dots,\varphi_n$ are conclusions of the rules of inferences,
-and $\varphi_n \equiv \varphi$. 
+and $\varphi_n \equiv \varphi$.
 In this proof, $\varphi_1,\dots,\varphi_k$ are from $\Gamma$ so they are public.
-The last pattern $\varphi_n$ is the theorem being proved so it is also public. 
-The intermediate patterns $\varphi_{k+1},\dots,\varphi_{n-1}$ 
-are private or hidden. 
+The last pattern $\varphi_n$ is the theorem being proved so it is also public.
+The intermediate patterns $\varphi_{k+1},\dots,\varphi_{n-1}$
+are private or hidden.
 
 As a concluding remark, we mention that the precise presentation of
-the proof system can be (slightly) modified, without changing the provability relation $\Gamma \vdash \varphi$. 
-For example, 
+the proof system can be (slightly) modified, without changing the provability relation $\Gamma \vdash \varphi$.
+For example,
 we can replace the \pruleLuk axiom schema
 \[
 \pruleLuk
 \quad
-((\varphi_1 \imp \varphi_2) \imp \varphi_3) 
+((\varphi_1 \imp \varphi_2) \imp \varphi_3)
    \imp ((\varphi_3 \imp \varphi_1) \imp (\varphi_4 \imp \varphi_1))
 \]
 with a single axiom (i.e., not a schema):
 \[
 \prule{Łukasiewicz'}
 \quad
-((\cvX_1 \imp \cvX_2) \imp \cvX_3) 
+((\cvX_1 \imp \cvX_2) \imp \cvX_3)
    \imp ((\cvX_3 \imp \cvX_1) \imp (\cvX_4 \imp \cvX_1))
 \]
-where $\cvX_1,\dots,\cvX_4$ are four (different) concrete set variables. 
+where $\cvX_1,\dots,\cvX_4$ are four (different) concrete set variables.
 Any instance of \pruleLuk is derivable from \prule{Łukasiewicz'}
-and the \pruleSubst rule of inference. 
+and the \pruleSubst rule of inference.
 As another example, we can replace
 \pruleFrame with two rules of inference
 \begin{align*}
@@ -564,36 +569,36 @@ As another example, we can replace
   & \prftree{\varphi_1 \imp \varphi_2}
             {(\psi \, \varphi_1) \imp (\psi \, \varphi_2)}
 \end{align*}
-While now we have two rules instead of one, 
+While now we have two rules instead of one,
 we avoid the use of application contexts (i.e., $C[\dots]$),
-which will make proof checking easier. 
+which will make proof checking easier.
 However, we will get longer proofs, because every \pruleFrame step
 will need a number of \pruleFrameL/\pruleFrameL steps,
-depending on the number of symbols in $C$. 
+depending on the number of symbols in $C$.
 
-To conclude, there is some flexibility in the design of the matching logic proof system. 
+To conclude, there is some flexibility in the design of the matching logic proof system.
 The main criteria here is the simplicity of the generation and verification
 of the succinct cryptographic proofs of matching logic proofs,
-as discussed in \Cref{sec:crypto_proofs}. 
+as discussed in \Cref{sec:crypto_proofs}.
 
 \subsection{Matching Logic Proof Checker}
 \label{sec:ml_proof_checker}
 
-Generally speaking, 
+Generally speaking,
 a matching logic proof checker is a deterministic and terminating program
 \begin{equation}
 \cdpc(\Gamma, \varphi, \Pi) \in \{\cdsucc, \cdfail\}
 \end{equation}
 The three inputs are:
 \begin{enumerate}
-\item a theory $\Gamma$, which can be the axiomatization of a mathematical domain or the formal semantics of a programming or specification language; 
+\item a theory $\Gamma$, which can be the axiomatization of a mathematical domain or the formal semantics of a programming or specification language;
 \item a pattern/claim $\varphi$;
-\item a proof object $\Pi$, 
+\item a proof object $\Pi$,
       which encodes a Hilbert $\Gamma$-proof for $\varphi$.
 \end{enumerate}
 A matching logic proof checker should satisfy the following
-soundness and completeness property:\footnote{Do not confuse it 
-with the soundness and completeness of a formal logic, which, intuitively speaking, 
+soundness and completeness property:\footnote{Do not confuse it
+with the soundness and completeness of a formal logic, which, intuitively speaking,
 is the equivalence between what is semantically true and what is provable. In this article, we do not care about semantics at all. The soundness and completeness property is a property about the proof checker.}
 \begin{equation}
 \label{eq:pc_sound_complete}
@@ -603,27 +608,27 @@ is the equivalence between what is semantically true and what is provable. In th
 \end{equation}
 
 To implement a matching logic proof checker,
-one needs to consider many factors. 
-For example, one should decide an encoding/decoding mechanism for 
+one needs to consider many factors.
+For example, one should decide an encoding/decoding mechanism for
 representing $\Gamma$, $\varphi$, and $\Pi$.
 Sometimes, the proof object $\Pi$ can include additional
-proof annotations to simplify the main proof checking algorithm. 
+proof annotations to simplify the main proof checking algorithm.
 One should also formalize the metalevel operations/definitions
 in the proof checking algorithms, including but not limited to
 free variables, capture-avoiding substitution, and application contexts.
 These metalevel operations/definitions are necessary to formulate the
-matching logic proof system in \Cref{sec:ml_proof_system}. 
+matching logic proof system in \Cref{sec:ml_proof_system}.
 
 We have implemented a matching logic proof checker in Metamath
 (\url{http://metamath.org})
-in 200 lines of code.\footnote{See \url{https://github.com/runtimeverification/proof-generation/blob/main/theory/matching-logic-200-loc.mm}.}.  
-Modulo all the technical and implementation details, 
-the essence of the Metamath implementation is a reduction 
+in 200 lines of code.\footnote{See \url{https://github.com/runtimeverification/proof-generation/blob/main/theory/matching-logic-200-loc.mm}.}.
+Modulo all the technical and implementation details,
+the essence of the Metamath implementation is a reduction
 from checking matching logic proofs into three basic operations
 over strings:
 \begin{enumerate}
 \item checking string equivalence;
-\item string substitution; 
+\item string substitution;
 \item dictionary lookups.
 \end{enumerate}
 
@@ -636,32 +641,32 @@ For example, the proof object for
 $\GammaIMP \vdash \varphisum$,
 where
 \begin{align}
-\GammaIMP &\quad=\quad 
+\GammaIMP &\quad=\quad
 \text{formal semantics of IMP---a simple imperative language; 40 lines of \K}
 \\
-\varphisum &\quad=\quad 
+\varphisum &\quad=\quad
 \text{a claim stating that the output of the following \cdsum program is 5050}
 \\
-\cdsum &\quad=\quad 
+\cdsum &\quad=\quad
 \code{int n = 100, s = 0; while(-{}-n)\{s = s + n;\}; output(s);}
 \end{align}
 consumes 83.4 MB of storage.\footnote{See \url{https://github.com/runtimeverification/proof-generation/blob/main/examples/sum-imp-complete-proof.mm}.}
 Therefore, mathematical proof objects are not good candidates for
 serving as \emph{correctness certificates}.
-They are too large to exchange. 
-On the other hand, 
+They are too large to exchange.
+On the other hand,
 it is unnecessary to use a complete mathematical proof object
 if all that we want to show is $\Gamma \vdash \varphi$.
 According to \Cref{eq:pc_sound_complete},
 we only need show the \emph{existence} of a mathematical proof object
-that will pass the proof checker. 
+that will pass the proof checker.
 
-The \emph{research problem} is to 
+The \emph{research problem} is to
 design a succinct cryptographic proof system
 $(\ZKprover,\ZKverifier)$
 with a prover $\ZKprover$ and a verifier $\ZKverifier$.
 The prover $\ZKprover$ takes three inputs\footnote{The prover/verifier can take more inputs such as a common reference string.}
-and produces a succinct cryptographic proof $\pi$, i.e., 
+and produces a succinct cryptographic proof $\pi$, i.e.,
 \begin{equation}
 \ZKprover(\Gamma, \varphi, \Pi) = \pi
 \end{equation}
@@ -675,37 +680,37 @@ Such a cryptographic proof system should satisfy the following soundness and com
 \item If $\cdpc(\Gamma,\varphi,\Pi) = \cdsucc$, we have $\ZKverifier(\Gamma,\varphi,\ZKprover(\Gamma, \varphi, \Pi)) = \cdacc$
 \item If $\cdpc(\Gamma,\varphi,\Pi) = \cdfail$, we have
 $\Pr(\ZKverifier(\Gamma, \varphi, \ZKprover'(\Gamma, \varphi, \Pi)) = \cdrej) \ge 1-\epsilon$
-for any poly-time $\ZKprover'$. 
+for any poly-time $\ZKprover'$.
 \end{enumerate}
 
 \section{Our Approach}
 
 What distinguishes our task from developing a SNARK/STARK for a generic program
 is the following crucial fact:
-\emph{checking mathematical proof objects is an embarrassingly parallel problem.} 
+\emph{checking mathematical proof objects is an embarrassingly parallel problem.}
 Consider an arbitrary Hilbert proof
-$\pr{\varphi_1,\varphi_2,\dots,\varphi_n}$. 
+$\pr{\varphi_1,\varphi_2,\dots,\varphi_n}$.
 By \Cref{def:Hilbert-proof}, for every $1 \le i \le n$,
 the pattern/claim $\varphi_i$
 is either an axiom or derivable using one of the 5 non-nullary rules of inference.
 Note that it is \emph{local} to check whether $\varphi_i$ is an axiom,
-in the sense that there are no premises. 
-If $\varphi_i$ is derivable, checking it requires to look up at most 2 existing claims.\footnote{\pruleMP has two premises. The other rules of inferece have one premise each. Logical axiom schemas have no premises. } 
+in the sense that there are no premises.
+If $\varphi_i$ is derivable, checking it requires to look up at most 2 existing claims.\footnote{\pruleMP has two premises. The other rules of inferece have one premise each. Logical axiom schemas have no premises. }
 
 We utilize the fact that
 checking mathematical proof objects is an embarrassingly parallel problem
 to optimize our succinct cryptographic proof system.
 For example, we develop a circuit for every case in \Cref{def:Hilbert-proof}.
-This results in 13 circuits; 12 of them are for the 12 
-(non-nullary and nullary) proof rules in \Cref{fig:ml-proof-system} 
+This results in 13 circuits; 12 of them are for the 12
+(non-nullary and nullary) proof rules in \Cref{fig:ml-proof-system}
 and the last one is for checking membership $\varphi \in \Gamma$,
-which is Case (1) in \Cref{def:Hilbert-proof}. 
-Each instance that runs a circuit will receive a cryptographic commitment 
+which is Case (1) in \Cref{def:Hilbert-proof}.
+Each instance that runs a circuit will receive a cryptographic commitment
 to the Hilbert proof to ensure that all the proof steps being checked
-can be aggregated together. 
+can be aggregated together.
 Finally, we use a cryptographic certificate aggregation method such as
-recursive SNARKs or SnarkPack 
-to aggregate all the one-step certificates into a final cryptographic certificate. 
+recursive SNARKs or SnarkPack
+to aggregate all the one-step certificates into a final cryptographic certificate.
 
 Throughout this section, let us assume
 the matching logic theorem being proved is
@@ -721,65 +726,65 @@ and a corresponding Hilbert-style proof is
 \subsection{Preliminaries}
 
 We first introduce the preliminaries on the encoding function for matching logic,
-commitment schemas, and cryptographic certificates aggregation. 
+commitment schemas, and cryptographic certificates aggregation.
 
 \subsubsection{Encoding function}
 
-An \emph{encoding function} $\en{\_}$ 
-is a mapping from matching logic patterns and theories into data. 
+An \emph{encoding function} $\en{\_}$
+is a mapping from matching logic patterns and theories into data.
 In this paper, we do not specify a particular encoding function
 to enjoy the flexibility to work with
 any encoding mechanism
-(textbook encoding, de Bruijn encoding (\url{https://en.wikipedia.org/wiki/De_Bruijn_index}), 
-locally nameless encoding (\url{https://chargueraud.org/research/2009/ln/main.pdf}), 
+(textbook encoding, de Bruijn encoding (\url{https://en.wikipedia.org/wiki/De_Bruijn_index}),
+locally nameless encoding (\url{https://chargueraud.org/research/2009/ln/main.pdf}),
 nominal encoding (\url{https://www.cl.cam.ac.uk/~amp12/papers/nomlfo/nomlfo-draft.pdf}), \ldots)
-and representation method 
-(S-expression (\url{https://en.wikipedia.org/wiki/S-expression}), 
+and representation method
+(S-expression (\url{https://en.wikipedia.org/wiki/S-expression}),
  Metamath (\url{metamath.org }), a binary representation, \ldots)
 We use $\Data$ to denote the data space associated with the encoding function
-$\en{\_}$. 
+$\en{\_}$.
 For $d \in \Data$,
-we say that $d$ is a \emph{valid pattern encoding} 
+we say that $d$ is a \emph{valid pattern encoding}
 (resp. \emph{valid theory encoding}) iff
 there exists $\varphi$ (resp. $\Gamma$)
-such that $d = \en{\varphi}$ (resp. $d = \en{\Gamma}$). 
-We say that $d$ is a \emph{valid encoding} if it is 
-a valid pattern encoding or a valid theory encoding. 
-For technical simplicity, we require that patterns and theories 
+such that $d = \en{\varphi}$ (resp. $d = \en{\Gamma}$).
+We say that $d$ is a \emph{valid encoding} if it is
+a valid pattern encoding or a valid theory encoding.
+For technical simplicity, we require that patterns and theories
 do not share a common encoding; that is,
-$\en{\varphi} \neq \en{\Gamma}$ for any $\varphi$ and $\Gamma$. 
+$\en{\varphi} \neq \en{\Gamma}$ for any $\varphi$ and $\Gamma$.
 
 
 A \emph{collision} is when there exist two different $\varphi_1$ and $\varphi_2$ such that $\en{\varphi_1} = \en{\varphi_2}$
-(resp., two different $\Gamma_1$ and $\Gamma_2$ such that $\en{\Gamma_1} = \en{\Gamma_2}$). 
+(resp., two different $\Gamma_1$ and $\Gamma_2$ such that $\en{\Gamma_1} = \en{\Gamma_2}$).
 An \emph{injective} encoding, such as textbook encoding or nominal encoding,
 guarantees that there is no collision;
 that is, $\en{\varphi_1} = \en{\varphi_2}$ implies $\varphi_1 \equiv \varphi_2$
-(and the same for theories). 
+(and the same for theories).
 De Bruijn encoding and locally nameless encoding are \emph{injective-modulo} encoding, in the sense that
 $\en{\varphi_1} = \en{\varphi_2}$ implies $\varphi_1$ is $\alpha$-equivalent to
-$\varphi_2$. 
-In other words, they are injective modulo $\alpha$-equivalence. 
-Since our goal is to determine whether a given pattern is provable or not, 
+$\varphi_2$.
+In other words, they are injective modulo $\alpha$-equivalence.
+Since our goal is to determine whether a given pattern is provable or not,
 we can use any encoding function that is injective modulo an equivalence relation $E$
 that is finer than logical equivalence;
-that is, $\en{\varphi_1} = \en{\varphi_2}$ implies $\varphi_1 \mathbin{E} \varphi_2$, which implies $\emptyset \vdash \varphi_1 \dimp \varphi_2$. 
-For textbook encoding or nominal encoding, $E$ is syntactic identity. 
-For de Bruijn encoding and locally nameless encoding, $E$ is $\alpha$-equivalence. 
+that is, $\en{\varphi_1} = \en{\varphi_2}$ implies $\varphi_1 \mathbin{E} \varphi_2$, which implies $\emptyset \vdash \varphi_1 \dimp \varphi_2$.
+For textbook encoding or nominal encoding, $E$ is syntactic identity.
+For de Bruijn encoding and locally nameless encoding, $E$ is $\alpha$-equivalence.
 Given an encoding function and a valid pattern encoding
 (resp. valid theory encoding) $d$,
 we write $\varphi_d$ (resp. $\Gamma_d$) to denote a pattern (resp. theory)
-such that $\en{\varphi_d} = d$ (resp. $\en{\Gamma_d} = d$). 
+such that $\en{\varphi_d} = d$ (resp. $\en{\Gamma_d} = d$).
 
 We are open to and interested in designing
-new encoding functions that are cryptography friendly.  
+new encoding functions that are cryptography friendly.
 For example, an encoding function whose data space $\Data$
 is a polynomial vector space may allow
 us to directly implement
 operations over patterns and theories
 using the primitive operations over the polynomial vector space,
-without going through an extra layer of abstraction/interpretation 
-of a certain ZK language or framework. 
+without going through an extra layer of abstraction/interpretation
+of a certain ZK language or framework.
 
 \subsubsection{Non-Interactive Commitment Schemes}
 
@@ -789,22 +794,22 @@ The following definition is from \url{https://shorturl.at/jmozS}.
 A \emph{commitment scheme} is a tuple of procedures
 $(\CSSetup, \CSCommit, \CSVerCommit)$, where
 \begin{enumerate}
-\item $\CSSetup(1^\lambda) \to \ck$ 
+\item $\CSSetup(1^\lambda) \to \ck$
       takes a security parameter $\lambda \in \NNN$
       and outputs a commitment key $\ck$. This key includes descriptions of
       the input space
-      $\Ispace$,  commitment space $\Cspace$, and opening space $\Ospace$. 
+      $\Ispace$,  commitment space $\Cspace$, and opening space $\Ospace$.
 \item $\CSCommit(\ck, u) \to  (c, o)$ takes $\ck$ and a value $u \in \Ispace$
       and outputs a commitment $c$ and an opening $o$.
 \item $\CSVerCommit(\ck, c, u, o) \to b$ takes $\ck$ as well as
       a commitment $c$, a value $u$, and an opening $o$,
-      and accepts ($b = \cdacc$) or rejects ($b = \cdrej$).  
+      and accepts ($b = \cdacc$) or rejects ($b = \cdrej$).
 \end{enumerate}
 A commitment scheme should satisfy the following properties:
 \begin{enumerate}
 \item (Correctness).
       For every $\lambda \in \NNN$ and $u \in \Ispace$, we have
-      $\Pr[\CSVerCommit(\ck, c, u, o) = \cdacc \mid \ck = \CSSetup(1^\lambda), (c,o) = \CSCommit(\ck, u)] = 1$. 
+      $\Pr[\CSVerCommit(\ck, c, u, o) = \cdacc \mid \ck = \CSSetup(1^\lambda), (c,o) = \CSCommit(\ck, u)] = 1$.
 \item (Binding).
       For every poly-time adversary $\Adversary$, we have
       \begin{align*}
@@ -815,48 +820,48 @@ A commitment scheme should satisfy the following properties:
       \end{align*}
 \item (Hiding). For $\ck = \CSSetup(1^\lambda)$ and $u,u' \in \Ispace$,
       the following two probabilistic distributions are statistically close:
-      $\CSCommit(\ck, u) \approx \CSCommit(\ck, u')$. 
+      $\CSCommit(\ck, u) \approx \CSCommit(\ck, u')$.
 \end{enumerate}
 \end{definition}
 
 Intuitively, a commitment scheme allows us to lock a value $u$
 within a safe box (commitment $c$),
-which can only be opened using the corresponding key (opening $o$). 
+which can only be opened using the corresponding key (opening $o$).
 Given a theory $\Gamma$, we can compute its commitment $\cGamma$
 with an opening $\oGamma$ and pass them to the proof nodes
 (explained in \Cref{sec:proof_network_arc}).
 This way, we ensure that all the proof nodes have access to the same
-theory $\Gamma$. 
+theory $\Gamma$.
 
 We also need a commitment scheme for the $\Gamma$-proof $\pr{\varphi_1,\dots,\varphi_n}$,
-which allows to be opened only w.r.t. a specific position. 
-This is known as \emph{vector commitments}. 
-The following definition is from \url{https://shorturl.at/wzE79}, 
-adapted and simplified 
-to fit our setting and notation. 
+which allows to be opened only w.r.t. a specific position.
+This is known as \emph{vector commitments}.
+The following definition is from \url{https://shorturl.at/wzE79},
+adapted and simplified
+to fit our setting and notation.
 \begin{definition}
 A \emph{vector commitment scheme} is a tuple of procedures
 $(\VCSetup, \VCCommit, \VCVerCommit)$, where
 \begin{enumerate}
-\item $\VCSetup(1^\lambda, n) \to \ck$ 
+\item $\VCSetup(1^\lambda, n) \to \ck$
       takes a security parameter $\lambda \in \NNN$
-      and a size $n \in \NNN$, 
+      and a size $n \in \NNN$,
       and outputs a commitment key $\ck$. This key includes descriptions of
       the input space
-      $\Ispace$,  commitment space $\Cspace$, and opening space $\Ospace$. 
-\item $\VCCommit(\ck, \vecu) \to  (c, o)$ takes $\ck$ and 
+      $\Ispace$,  commitment space $\Cspace$, and opening space $\Ospace$.
+\item $\VCCommit(\ck, \vecu) \to  (c, o)$ takes $\ck$ and
       an $n$-length vector $\vecu = \pr{u_1,\dots,u_n}$ with $u_1,\dots,u_n \in \Ispace$,
       and outputs a commitment $c$ and an opening $o$.
 \item $\VCVerCommit(\ck, c, u, i, o) \to b$ takes $\ck$ as well as
       a commitment $c$, a value $u$, a position $i$, and an opening $o$,
-      and accepts ($b = \cdacc$) or rejects ($b = \cdrej$).  
+      and accepts ($b = \cdacc$) or rejects ($b = \cdrej$).
 \end{enumerate}
 A vector commitment should satisfy the following properties
 (where $\vecu = \pr{u_1,\dots,u_n}$):
 \begin{enumerate}
 \item (Correctness).
       For every $\lambda \in \NNN$ and $\vecu$, we have
-      $\Pr[\CSVerCommit(\ck, c, u_i, i, o) = \cdacc \mid \ck = \CSSetup(1^\lambda, n), (c,o) = \CSCommit(\ck, \vecu)] = 1$. 
+      $\Pr[\CSVerCommit(\ck, c, u_i, i, o) = \cdacc \mid \ck = \CSSetup(1^\lambda, n), (c,o) = \CSCommit(\ck, \vecu)] = 1$.
 \item (Binding).
       For every poly-time adversary $\Adversary$, we have
       \begin{align*}
@@ -867,32 +872,32 @@ A vector commitment should satisfy the following properties
       \end{align*}
 \item (Hiding). For $\ck = \CSSetup(1^\lambda, n)$ and $\vecu,\vecu' \in \Ispace$,
       the following two probabilistic distributions are statistically close:
-      $\CSCommit(\ck, \vecu) \approx \CSCommit(\ck, \vecu')$. 
+      $\CSCommit(\ck, \vecu) \approx \CSCommit(\ck, \vecu')$.
 \end{enumerate}
 \end{definition}
 
-Given a Hilbert $\Gamma$-proof $\Pi = \pr{\varphi_1,\dots,\varphi_n}$, we can compute its vector commitment $\cPi$ with an opening $\oPi$ and pass them to the proof nodes. This way, we ensure that all the proof nodes have access to the same Hilbert $\Gamma$-proof, without needing to send the entire Hilbert $\Gamma$-proof to each proof node. 
+Given a Hilbert $\Gamma$-proof $\Pi = \pr{\varphi_1,\dots,\varphi_n}$, we can compute its vector commitment $\cPi$ with an opening $\oPi$ and pass them to the proof nodes. This way, we ensure that all the proof nodes have access to the same Hilbert $\Gamma$-proof, without needing to send the entire Hilbert $\Gamma$-proof to each proof node.
 
 \subsection{Proof Network Architecture}
 \label{sec:proof_network_arc}
 
 We introduce a \emph{proof network} for checking
 the correctness of any given Hilbert $\Gamma$-proof
-$\pr{\varphi_1,\dots,\varphi_n}$ in parallel. 
+$\pr{\varphi_1,\dots,\varphi_n}$ in parallel.
 The proof network $\PNet$ consists of $n+2$ nodes, as follows:
 \begin{enumerate}
 \item An \emph{initial node} $\Ninit$ that stores
       $\Gamma$ and $\varphi_1,\dots,\varphi_n$, as well as
-      a proof annotation $\alpha$. 
+      a proof annotation $\alpha$.
       The proof annotation includes additional information that simplifies
-      the proof checking procedures. 
-      The initial node is in charge of dispatching the entire proof checking task into $n$ sub-tasks, which will be carried out by $n$ proof nodes in parallel. 
-\item \emph{Proof nodes} $\Nprn{1},\dots,\Nprn{n}$, which are called by the initial node. 
+      the proof checking procedures.
+      The initial node is in charge of dispatching the entire proof checking task into $n$ sub-tasks, which will be carried out by $n$ proof nodes in parallel.
+\item \emph{Proof nodes} $\Nprn{1},\dots,\Nprn{n}$, which are called by the initial node.
       Each proof node checks only one step of the Hilbert proof
       and produces a cryptographic certificate.
-      All the cryptographic certificates will then be       passed to the aggregation node. 
+      All the cryptographic certificates will then be       passed to the aggregation node.
 \item An \emph{aggregation node} $\Naggr$ that aggregates the cryptographic
-      certificates produced by the proof nodes into the final cryptographic certificate. 
+      certificates produced by the proof nodes into the final cryptographic certificate.
 \end{enumerate}
 
 \subsubsection{Initial Node}
@@ -902,11 +907,11 @@ The initial node $\Ninit$ runs \Cref{alg:initial_node}.
 In the algorithm, we only send the commitments of $\Gamma$ and/or $\Pi$,
 the index of the pattern being proved,
 and a type code that indicates how it is proved,
-to the proof nodes via a trusted channel. 
-All the other information such as the pattern itself and proof annotations can be sent via an untrusted channel to reduce cost. 
+to the proof nodes via a trusted channel.
+All the other information such as the pattern itself and proof annotations can be sent via an untrusted channel to reduce cost.
 
 \begin{algorithm}[tp]
- \KwData{A theory $\Gamma$, a Hilbert $\Gamma$-proof       
+ \KwData{A theory $\Gamma$, a Hilbert $\Gamma$-proof
          $\Pi = \pr{\varphi_1,\dots,\varphi_n}$ of length $n$,
          and a proof annotation $\alpha$}
  \KwParam{Two security parameters $\lambda_\Gamma,\lambda_\Pi \in \NNN$}
@@ -925,31 +930,31 @@ All the other information such as the pattern itself and proof annotations can b
   which, usually, can simply be extracted from $\alpha$\;
   \Switch{how $\varphi_i$ is derived in $\Pi$}{
   \uCase{$\varphi$ is an assumption, i.e., $\varphi_i \in \Gamma$}{
-    send $\pr{\cdassump, \ckGamma, \ckPi, \cGamma, \oGamma, \cPi, \oPi, i}$ to $\Nprn{i}$ 
+    send $\pr{\cdassump, \ckGamma, \ckPi, \cGamma, \oGamma, \cPi, \oPi, i}$ to $\Nprn{i}$
     via a trusted channel\;
-    send $\pr{\enGamma, \envarphin{i}, \alpha_i}$ to $\Nprn{i}$ 
+    send $\pr{\enGamma, \envarphin{i}, \alpha_i}$ to $\Nprn{i}$
     via an untrusted channel\;
   }
   \uCase{$\varphi$ is an instance of one of 7 logical axiom schemas}{
-    send $\pr{\cdax, \ckPi, \cPi, \oPi, i}$ to $\Nprn{i}$ 
+    send $\pr{\cdax, \ckPi, \cPi, \oPi, i}$ to $\Nprn{i}$
     via a trusted channel\;
-    send $\pr{\envarphin{i}, \alpha_i}$ to $\Nprn{i}$ 
+    send $\pr{\envarphin{i}, \alpha_i}$ to $\Nprn{i}$
     via an untrusted channel\;
   }
   \uCase{$\varphi$ is derived by $\pruleMP$}{
     $j_1 \gets \text{index of the first premise of $\varphi_i$ in $\Pi$}$\;
     $j_2 \gets \text{index of the second premise of $\varphi_i$ in $\Pi$}$\;
-    send $\pr{\cdmp, \ckPi, \cPi, \oPi, j_1, j_2, i}$ to $\Nprn{i}$ 
+    send $\pr{\cdmp, \ckPi, \cPi, \oPi, j_1, j_2, i}$ to $\Nprn{i}$
     via a trusted channel\;
-    send $\pr{\envarphin{j_1}, \envarphin{j_2}, \envarphin{i}, \alpha_i}$ to $\Nprn{i}$ 
+    send $\pr{\envarphin{j_1}, \envarphin{j_2}, \envarphin{i}, \alpha_i}$ to $\Nprn{i}$
     via an untrusted channel\;
   }
-  \uCase{$\varphi$ is derived by any other rule of inference 
+  \uCase{$\varphi$ is derived by any other rule of inference
          (which has one premise)}{
     $j \gets \text{index of the premise of $\varphi_i$ in $\Pi$}$\;
-    send $\pr{\kappa, \ckPi, \cPi, \oPi, j, i}$ to $\Nprn{i}$ 
+    send $\pr{\kappa, \ckPi, \cPi, \oPi, j, i}$ to $\Nprn{i}$
     via a trusted channel, where $\kappa$ indicates the rule of inference\;
-    send $\pr{\envarphin{j}, \envarphin{i}, \alpha_i}$ to $\Nprn{i}$ 
+    send $\pr{\envarphin{j}, \envarphin{i}, \alpha_i}$ to $\Nprn{i}$
     via an untrusted channel\;
   }} % end of switch
  } % end of for
@@ -960,16 +965,16 @@ All the other information such as the pattern itself and proof annotations can b
 \subsubsection{Proof Nodes}
 
 Each proof node is equipped with a \emph{basic procedure},
-denoted $\bptop$, which checks the correctness of one Hilbert proof step. 
+denoted $\bptop$, which checks the correctness of one Hilbert proof step.
 A proof node calls \emph{basic procedure} for proof checking
 and verifies the integrity of the data received from the untrusted channel
-using the commitments received from the trusted channel. 
+using the commitments received from the trusted channel.
 The algorithm that runs on a proof node is listed in \Cref{alg:proof_node},
 which calls sub-algorithms listed in
-\Cref{alg:proof_node_assump,alg:proof_node_ax,alg:proof_node_mp,alg:proof_node_other}. 
+\Cref{alg:proof_node_assump,alg:proof_node_ax,alg:proof_node_mp,alg:proof_node_other}.
 
 \begin{algorithm}[tp]
- \KwDescr{Receive a task from the Initial Node $\Ninit$, 
+ \KwDescr{Receive a task from the Initial Node $\Ninit$,
           perform proof checking,
           verify integrity, and send the certificate to the Aggregation Node.}
  \tcp{receive a task}
@@ -1001,7 +1006,7 @@ which calls sub-algorithms listed in
     the trusted channel\;
     \tcp{receive data from the untrusted channel}
     \tcp{the primes indicate that the data may be altered and is not trustworthy}
-    receive $\pr{\enGamma', \envarphin{i}', \alpha_i'} \gets$ 
+    receive $\pr{\enGamma', \envarphin{i}', \alpha_i'} \gets$
     the untrusted channel\;
     \If{$\bptop(\cdassump, \enGamma', \envarphin{i}', \alpha_i') = \cdrej$}{
       \tcp{proof check fails at $i$-th step; no certificate will be produced}
@@ -1029,7 +1034,7 @@ which calls sub-algorithms listed in
     the trusted channel\;
     \tcp{receive data from the untrusted channel}
     \tcp{the primes indicate that the data may be altered and is not trustworthy}
-    receive $\pr{\envarphin{i}', \alpha_i'} \gets$ 
+    receive $\pr{\envarphin{i}', \alpha_i'} \gets$
     the untrusted channel\;
     \If{$\bptop(\cdax, \envarphin{i}', \alpha_i') = \cdrej$}{
       \tcp{proof check fails at $i$-th step; no certificate will be produced}
@@ -1056,7 +1061,7 @@ which calls sub-algorithms listed in
     the trusted channel\;
     \tcp{receive data from the untrusted channel}
     \tcp{the primes indicate that the data may be altered and is not trustworthy}
-    receive $\pr{\envarphin{j_1}', \envarphin{j_2}', \envarphin{i}', \alpha_i'} \gets$ 
+    receive $\pr{\envarphin{j_1}', \envarphin{j_2}', \envarphin{i}', \alpha_i'} \gets$
     the untrusted channel\;
     \If{$\bptop(\cdmp, \envarphin{j_1}', \envarphin{j_2}', \envarphin{i}', \alpha_i') = \cdrej$}{
       \tcp{proof check fails at $i$-th step; no certificate will be produced}
@@ -1085,7 +1090,7 @@ which calls sub-algorithms listed in
     the trusted channel\;
     \tcp{receive data from the untrusted channel}
     \tcp{the primes indicate that the data may be altered and is not trustworthy}
-    receive $\pr{\envarphin{j}', \envarphin{i}', \alpha_i'} \gets$ 
+    receive $\pr{\envarphin{j}', \envarphin{i}', \alpha_i'} \gets$
     the untrusted channel\;
     \If{$\bptop(\kappa, \envarphin{j}', \envarphin{i}', \alpha_i') = \cdrej$}{
       \tcp{proof check fails at $i$-th step; no certificate will be produced}
@@ -1109,66 +1114,66 @@ which calls sub-algorithms listed in
 \begin{comment}
 We formalize the basic proof checking procedures that check the correctness of one-step Hilbert-style proofs.
 We split the arguments into \emph{public arguments} (listed before ``$;$'')
-and \emph{private arguments} (listed after ``$;$''). 
+and \emph{private arguments} (listed after ``$;$'').
 Note that proof annotations (denoted $\alpha$) are private because they
 only simplify the proof checking procedures.
 \begin{enumerate}
 \item $\bpassump(\enGamma , \envarphi ; \alpha) \in \{\cdsucc,\cdfail\}$
 \begin{enumerate}
 \item Returns $\cdsucc$ for some $\alpha$ iff $\varphi \in \Gamma$.
-\item Returns $\cdfail$ for any $\alpha$ iff otherwise. 
+\item Returns $\cdfail$ for any $\alpha$ iff otherwise.
 \end{enumerate}
 \item $\bpax(\envarphi ; \alpha) \in \{\cdsucc,\cdfail\}$
 \begin{enumerate}
 \item Returns $\cdsucc$ for some $\alpha$ iff $\varphi$ is a logical axiom, defined in \Cref{fig:ml-proof-system}.
-\item Returns $\cdfail$ for any $\alpha$ iff otherwise. 
+\item Returns $\cdfail$ for any $\alpha$ iff otherwise.
 \end{enumerate}
 \item $\bpmp(\enpsin{1}, \enpsin{2}, \envarphi ; \alpha) \in \{\cdsucc,\cdfail\}$
 \begin{enumerate}
 \item Returns $\cdsucc$ for some $\alpha$ iff
       $\varphi$ can be proved from $\psi_1$ and $\psi_2$ using \pruleMP.\footnote{That is, $\psi_1$ is identical to $\psi_2 \imp \varphi$. One can deduce similar criteria for the other proof rules according to \Cref{fig:ml-proof-system}.}
-\item Returns $\cdfail$ for any $\alpha$ iff otherwise. 
+\item Returns $\cdfail$ for any $\alpha$ iff otherwise.
 \end{enumerate}
 \item $\bpgen(\enpsi, \envarphi ; \alpha) \in \{\cdsucc,\cdfail\}$
 \begin{enumerate}
 \item Returns $\cdsucc$ for some $\alpha$ iff
-      $\varphi$ can be proved from $\psi$ using \pruleG. 
-\item Returns $\cdfail$ for any $\alpha$ iff otherwise.  
+      $\varphi$ can be proved from $\psi$ using \pruleG.
+\item Returns $\cdfail$ for any $\alpha$ iff otherwise.
 \end{enumerate}
 \item $\bpframe(\enpsi, \envarphi ; \alpha) \in \{\cdsucc,\cdfail\}$
 \begin{enumerate}
 \item Returns $\cdsucc$ for some $\alpha$ iff
-      $\varphi$ can be proved from $\psi$ using \pruleFrame. 
-\item Returns $\cdfail$ for any $\alpha$ iff otherwise.  
+      $\varphi$ can be proved from $\psi$ using \pruleFrame.
+\item Returns $\cdfail$ for any $\alpha$ iff otherwise.
 \end{enumerate}
 \item $\bpsubst(\enpsi, \envarphi ; \alpha) \in \{\cdsucc,\cdfail\}$
 \begin{enumerate}
 \item Returns $\cdsucc$ for some $\alpha$ iff
-      $\varphi$ can be proved from $\psi$ using \pruleSubst. 
-\item Returns $\cdfail$ for any $\alpha$ iff otherwise.  
+      $\varphi$ can be proved from $\psi$ using \pruleSubst.
+\item Returns $\cdfail$ for any $\alpha$ iff otherwise.
 \end{enumerate}
 \item $\bpkt(\enpsi, \envarphi ; \alpha) \in \{\cdsucc,\cdfail\}$
 \begin{enumerate}
 \item Returns $\cdsucc$ for some $\alpha$ iff
-      $\varphi$ can be proved from $\psi$ using \pruleKT. 
-\item Returns $\cdfail$ for any $\alpha$ iff otherwise.  
+      $\varphi$ can be proved from $\psi$ using \pruleKT.
+\item Returns $\cdfail$ for any $\alpha$ iff otherwise.
 \end{enumerate}
 \end{enumerate}
 
-For simplicity, we can merge the above basic procedures into 
+For simplicity, we can merge the above basic procedures into
 a \emph{top procedure}:
 \begin{equation}
 \bptop(\enGamma, \enDelta, \envarphi ; \beta) \in \{\cdsucc,\cdfail\}
 \end{equation}
-where $\beta = (i, \alpha)$ for 
+where $\beta = (i, \alpha)$ for
 $i \in \{ \code{assump},
           \code{ax},
           \code{mp},
           \code{gen},
           \code{frame},
           \code{subst},
-          \code{kt} \}$. 
-Intuitively, 
+          \code{kt} \}$.
+Intuitively,
 $\bptop$ returns $\cdsucc$ iff
 the basic procedure specified by $i$ returns $\cdsucc$.
 Formally, $\bptop(\enGamma, \enDelta, \envarphi ; \alpha)$ returns $\cdsucc$
@@ -1191,20 +1196,20 @@ iff one of the following conditions holds:
 \item $\bpkt(\enpsi, \envarphi ; \alpha) = \cdsucc$
       and $\Delta = \{\psi\}$.
 \end{enumerate}
-In other words, $\Delta$ is the set of premises used by a proof step. 
+In other words, $\Delta$ is the set of premises used by a proof step.
 
 The following theorem states that it is sound and complete
-to decompose any Hilbert-style proof into its basic proof steps. 
+to decompose any Hilbert-style proof into its basic proof steps.
 
 \begin{theorem}
 Proof sequence $\pr{\varphi_1,\dots,\varphi_n}$ is a Hilbert $\Gamma$-proof
-for $\varphi_n$ iff 
+for $\varphi_n$ iff
 there exists $\Delta_i$ and $\alpha_i$ for $1 \le i \le n$ such that
 \begin{enumerate}
 \item $\bptop(\enGamma, \enDeltan{i}, \envarphin{i} ; \alpha_i) = \cdsucc$
       for all $1 \le i \le n$;
-\item $\Delta_1 = \emptyset$, and 
-      $\Delta_i \subseteq \{\varphi_1,\dots,\varphi_{i-1}\}$ 
+\item $\Delta_1 = \emptyset$, and
+      $\Delta_i \subseteq \{\varphi_1,\dots,\varphi_{i-1}\}$
       for all $2 \le i \le n$.
 \end{enumerate}
 \end{theorem}
@@ -1213,64 +1218,64 @@ We can generate cryptographic certificates for the top procedure $\bptop$.
 More specifically, there exists a cryptographic proof system
 $(\PPbasic, \VVbasic)$
 where the prover $\PPbasic$ produces
-a cryptographic certificate $\pibasic$ for 
+a cryptographic certificate $\pibasic$ for
 $\enGamma$, $\enDelta$, $\envarphi$, and $\alpha$; that is,
 \begin{equation}
 \PPbasic(\enGamma, \enDelta, \envarphi, \alpha) = \pibasic
 \end{equation}
 The verifier $\VVbasic(\enGamma, \enDelta, \envarphi, \pibasic)$
-returns $\cdacc$ or $\cdrej$. 
+returns $\cdacc$ or $\cdrej$.
 Such a cryptographic proof system for basic proofs
 should satisfy the following soundness and completeness property:
 \begin{enumerate}
 \item If $\bptop(\enGamma, \enDelta, \envarphi ; \alpha) = \cdsucc$,
-      we have $\VVbasic(\enGamma, \enDelta, \envarphi, \PPbasic(\enGamma, \enDelta, \envarphi, \alpha)) = \cdacc$. 
+      we have $\VVbasic(\enGamma, \enDelta, \envarphi, \PPbasic(\enGamma, \enDelta, \envarphi, \alpha)) = \cdacc$.
 \item If $\bptop(\enGamma, \enDelta, \envarphi ; \alpha) = \cdfail$,
-      we have $\VVbasic(\enGamma, \enDelta, \envarphi, \PP'(\enGamma, \enDelta, \envarphi, \alpha)) = \cdrej$ with high probability, 
-      for any poly-time $\PP'$. 
+      we have $\VVbasic(\enGamma, \enDelta, \envarphi, \PP'(\enGamma, \enDelta, \envarphi, \alpha)) = \cdrej$ with high probability,
+      for any poly-time $\PP'$.
 \end{enumerate}
 
 \subsubsection{Component 2: Step Procedures}
 \label{sec:info_sharing}
 
-Let $1 \le i \le n$ and 
+Let $1 \le i \le n$ and
 $\pibn{i} = \PPbasic(\enGamman{i}, \enDeltan{i}, \envarphin{i}, \alpha_i)$,
 which is the cryptographic certificate for checking the one-step
-Hilbert proof for $\varphi_i$. 
-However, it is not enough to just check the correctness of 
-$\pibn{i}$ for $1 \le i \le n$. 
+Hilbert proof for $\varphi_i$.
+However, it is not enough to just check the correctness of
+$\pibn{i}$ for $1 \le i \le n$.
 We also need to ensure that all the $\pibn{i}$'s belong to the same
-Hilbert proof and agree on the same underlying theory that is being used. 
+Hilbert proof and agree on the same underlying theory that is being used.
 More specifically, we need to ensure that
 \begin{enumerate}
-\item $\Gamma_i = \Gamma$ for all $1 \le i \le n$, where $\Gamma$ is the 
-      underlying theory in \Cref{eq:goal}. 
-\item $\Delta_1 = \emptyset$ and $\Delta_i \subseteq 
-      \{\varphi_1,\dots,\varphi_{i-1}\}$ for all $2 \le i \le n$. 
+\item $\Gamma_i = \Gamma$ for all $1 \le i \le n$, where $\Gamma$ is the
+      underlying theory in \Cref{eq:goal}.
+\item $\Delta_1 = \emptyset$ and $\Delta_i \subseteq
+      \{\varphi_1,\dots,\varphi_{i-1}\}$ for all $2 \le i \le n$.
 \end{enumerate}
 
-We can use cryptographic commitment schemes to synchronize the $n$ instances of basic procedures and share the necessary information among them. 
+We can use cryptographic commitment schemes to synchronize the $n$ instances of basic procedures and share the necessary information among them.
 We build a Merkel tree $\MT$
-with $N = 2^{\ceil{\log_2(n+1)}}$ leaf nodes. 
-In other words, $N$ is the smallest power of 2 such that $N \ge n+1$. 
+with $N = 2^{\ceil{\log_2(n+1)}}$ leaf nodes.
+In other words, $N$ is the smallest power of 2 such that $N \ge n+1$.
 From left to right, the first leaf node has the hash of $\Gamma$, denoted
-$\hof{\Gamma}$. 
+$\hof{\Gamma}$.
 The second to the $(n+1)$-th leaf nodes are the hashes of
-$\varphi_1,\dots,\varphi_n$, respectively. 
+$\varphi_1,\dots,\varphi_n$, respectively.
 The rest leaf nodes are filled with the hashes of a distinguished value,
-denoted $\hof{\bot}$, indicating that they do not represent any meaningful components of the Hilbert proof. 
-Let $\cMT$ be the hash associated with the root of $\MT$. 
-Note that $\cMT$ can be computed solely from the Hilbert proof. 
+denoted $\hof{\bot}$, indicating that they do not represent any meaningful components of the Hilbert proof.
+Let $\cMT$ be the hash associated with the root of $\MT$.
+Note that $\cMT$ can be computed solely from the Hilbert proof.
 
 To ensure the second condition regarding $\Delta_i$'s, we build another
 Merkel tree $\MM$ of the same size as $\MT$.
 The leaf nodes of $\MM$ are the hash values of the cryptographic certificates
-for proving the patterns whose hash values are associated with the leaf nodes of $\MT$ at the corresponding locations. 
-More specifically, from left to right, the first leaf node of $\MM$ is left empty (i.e., $\hof{\bot}$). 
+for proving the patterns whose hash values are associated with the leaf nodes of $\MT$ at the corresponding locations.
+More specifically, from left to right, the first leaf node of $\MM$ is left empty (i.e., $\hof{\bot}$).
 The second to the $(n+1)$-th leaf nodes are hashes of
-$\pibn{1},\dots,\pibn{n}$, respectively. 
+$\pibn{1},\dots,\pibn{n}$, respectively.
 For every $i$, we check that $\Delta_i$ only uses patterns in $\MT$
-that are located on the left side of $\varphi_i$. 
+that are located on the left side of $\varphi_i$.
 \end{comment}
 
 \subsubsection{Aggregation Node}
@@ -1281,6 +1286,6 @@ into a final certificate, using an existing proof aggregation
 scheme,  such as recursive SNARKs,
 SnarkPack\footnote{\url{https://eprint.iacr.org/2021/529}},
 incrementally verifiable computation (IVC),
-or proof-carrying data. 
- 
+or proof-carrying data.
+
 \end{document}
