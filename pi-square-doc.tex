@@ -2,10 +2,11 @@
 
 \input{prelim}
 
-\title{$\pi^2$: A High-Performance Zero-Knowledge Framework for All Programming Languages\\\Large(ver. 9.8)\footnote{It would be a missed opportunity to not number the versions of the $\pi^2$ framework by
+\title{\ps: A High-Performance Zero-Knowledge Framework for Verifying
+Mathematical Truth\\\Large(ver. 9.8)\footnote{It would be a missed opportunity to not number the versions of the \ps framework by
 the actual value of $\pi^2 = 9.869604\ldots$. 
-The current version number is 9.8.
-The next version number will be 9.86.}}
+The current version number is 9.8
+and the next version number will be 9.86.}}
 \author{Runtime Verification, Inc.}
 \date{\today}
 
@@ -14,24 +15,48 @@ The next version number will be 9.86.}}
 \maketitle
 
 \begin{abstract}
-In this paper we present $\pi^2$, which is a high-performance zero-knowledge
-framework for all programming languages. 
-The $\pi^2$ framework consists of three components. 
-The first component is a universal language framework called \K,
-which allows to define the formal semantics of any programming language.
-Using these formal semantics, 
-\K can carry out program execution, formal verification, symbolic execution,
-model checking, and many other program analysis tasks. 
-The second component is a powerful mathematical logic called
-matching logic, which allows to formally specify the correctness of 
-any tasks carried out by \K in terms of compact and rigorous logical axioms and theorems. 
-Matching logic admits a minimal proof system, which makes proof checking---the problem of verifying whether a formal proof of matching logic is correct---extremely simple. 
-The third component of $\pi^2$ is a massively-parallel-able zero-knowledge 
-protocol that allows to produce succinct cryptographic certificates
-for any correct matching logic theorems. 
+We present \ps, read ``$\pi$ squared'',
+as a high-performance zero-knowledge framework
+for verifying mathematical truth. 
+In \ps, 
+any true mathematical statement is formally expressed as a logical formula,
+for which a succinct, cryptographic, zero-knowledge
+proof is automatically produced and checkable by any third party. 
+Key advantages of \ps are
+(1) universality: any mathematically-expressible 
+    true property can be stated and verified by \ps;
+(2) high performance: \ps utilizes a perfectly parallel algorithm
+    to produce zero-knowledge proofs in constant time under parallelization;
+and (3) high trustworthiness: the correctness-critical core base 
+        of \ps is limited to less than 1,000 lines of code, making
+        the verification results obtained using \ps highly trusted. 
+In this paper, we present the theoretical foundation, core algorithms, 
+and killer applications of \ps. 
 \end{abstract}
 
 \section{Introduction}
+
+We propose \ps 
+as a unifying high-performance zero-knowledge framework
+for verifying the correctness of any types of computation,
+carried out by any computer systems or computer programs written 
+in any programming languages. 
+This includes the entire field
+of computing, as well as that of formal semantics and verification.
+In \ps, every claim that is made is verifiably true. 
+Specifically, claims
+come with independent, succinct, third-party checkable proof certificates. 
+A
+claim is anything that is provable, in particular computable: 
+the execution of a
+program, a particular work that has been done or an action that has been
+performed, the formal correctness or security of some code, or any mathematical result. 
+All these are formalized as mathematical theorems. 
+Any true claim  will have a succinct
+cryptographic proof . 
+We can check  virtually instantaneously and thus know that  is true.
+The \ps framework will facilitate both claim producers to also produce proofs for claims, and claim consumers
+to attest the validity of claims by checking the cryptographic proofs that come with those claims.
 
 \section{Preliminaries}
 
@@ -691,7 +716,7 @@ $\Pr(\ZKverifier(\Gamma, \varphi, \ZKprover'(\Gamma, \varphi, \Pi)) = \cdrej) \g
 for any poly-time $\ZKprover'$. 
 \end{enumerate}
 
-\section{Overview of $\pi^2$}
+\section{Overview of \ps}
 
 What distinguishes our task from developing a SNARK/STARK for a generic program
 is the following crucial fact:
